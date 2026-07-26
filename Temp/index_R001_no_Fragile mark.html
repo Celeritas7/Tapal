@@ -84,7 +84,6 @@
   .sheet{width:210mm;height:297mm;background:#fff;margin:0 auto 14px;position:relative;
          display:grid;overflow:hidden;border:1px solid var(--rule)}
   .sheet.two{grid-template-rows:1fr 1fr}
-  .sheet.one{grid-template-rows:1fr}
   .sheet.four{grid-template-rows:1fr 1fr;grid-template-columns:1fr 1fr}
 
   .label{position:relative;padding:9mm 10mm;display:flex;flex-direction:column;
@@ -94,13 +93,8 @@
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
   .label .inner{padding-left:6mm;display:flex;flex-direction:column;height:100%}
 
-  .band{border:2pt solid #000;padding:1.5mm 3mm;align-self:flex-start;margin-bottom:3mm;
-        display:flex;align-items:center;gap:3mm}
-  .band svg{height:12mm;width:auto;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .band .bt{font-size:10pt;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
-  .band .bn{border-top:1pt solid #000;margin-top:1.2mm;padding-top:1.2mm;font-size:7.5pt;letter-spacing:.12em;line-height:1.3}
-  .band .bm{display:flex;gap:1.5mm;margin-top:1.5mm;flex-wrap:wrap}
-  .band .bm span{border:1pt solid #000;padding:.8mm 2mm;font-size:7.5pt;font-weight:700;letter-spacing:.1em;white-space:nowrap}
+  .band{font-size:10pt;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+        border:2pt solid #000;padding:1.5mm 3mm;align-self:flex-start;margin-bottom:3mm}
   .toLbl{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;border-bottom:1pt solid #000;padding-bottom:1mm;margin-bottom:2.5mm}
   .toName{font-size:19pt;font-weight:700;line-height:1.15;text-transform:uppercase}
   .toAddr{font-size:13pt;line-height:1.35;margin-top:2mm;white-space:pre-line}
@@ -121,12 +115,7 @@
   .sheet.four .toAddr{font-size:9.5pt}
   .sheet.four .phone{font-size:10pt}
   .sheet.four .pinBoxes span{width:5.5mm;height:7mm;font-size:11pt}
-  .sheet.four .band{margin-bottom:2mm;padding:1.2mm 2mm;gap:2mm}
-  .sheet.four .band svg{height:7mm}
-  .sheet.four .band .bt{font-size:7.5pt}
-  .sheet.four .band .bn,.sheet.four .band .bm span{font-size:6pt}
-  .sheet.four .band .bm{gap:1mm}
-  .sheet.four .band .bm span{padding:.4mm 1.2mm}
+  .sheet.four .band{font-size:7.5pt;margin-bottom:2mm}
   .sheet.four .fromTxt{font-size:8pt}
   .sheet.four .contents{font-size:7.5pt;max-width:34mm}
 
@@ -494,31 +483,6 @@ $("addLog").onclick = async () => {
   renderLog(); say("Logged.");
 };
 
-/* ---------- handling band ---------- */
-/* ISO 780-style broken-glass mark. Flat black line-art so it survives a cheap
-   laser printer; print-color-adjust keeps it from being dropped. */
-const GLASS_SVG = '<svg viewBox="0 0 48 60" aria-hidden="true">'
-  + '<path d="M9 6 H39 L26.5 31 H21.5 Z" fill="#000"/>'
-  + '<path d="M22.5 31 H25.5 V50 H22.5 Z" fill="#000"/>'
-  + '<path d="M13 56 H35 L30 50 H18 Z" fill="#000"/>'
-  + '<path d="M27 5 H40 L31.5 22 L28.5 13 L25.5 17 Z" fill="#fff"/>'
-  + '<path d="M20 8 L24 13 L20.5 17 L23.5 22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'
-  + '<path d="M40 7 L47 11 L39 14 Z" fill="#000"/>'
-  + '<path d="M42 19 L47.5 23 L41 25 Z" fill="#000"/></svg>';
-
-const CARE_NOTE  = "DO NOT DROP \u00b7 DO NOT STACK \u00b7 KEEP UPRIGHT \u00b7 \u0938\u093e\u0935\u0927\u093e\u0928\u0940 \u0938\u0947 \u0930\u0916\u0947\u0902";
-const CARE_MARKS = ["GLASS \u00b7 \u0915\u093e\u0901\u091a", "THIS SIDE UP \u2191", "KEEP DRY"];
-
-function bandHTML(text, inside){
-  if(!text) return "";
-  if(inside) return `<div class="band"><div><div class="bt">${esc(text)}</div></div></div>`;
-  return `<div class="band">${GLASS_SVG}<div>
-    <div class="bt">${esc(text)}</div>
-    <div class="bn">${esc(CARE_NOTE)}</div>
-    <div class="bm">${CARE_MARKS.map(m => `<span>${esc(m)}</span>`).join("")}</div>
-  </div></div>`;
-}
-
 /* ---------- labels ---------- */
 const pinBoxes = pin => `<div class="pinBoxes">${
   String(pin||"").padEnd(6," ").slice(0,6).split("").map(d => `<span>${esc(d.trim())}</span>`).join("")}</div>`;
@@ -532,7 +496,7 @@ function labelHTML(a, inside){
   const addr = [a.addr, [a.city,a.district].filter(Boolean).join(", "), a.state].filter(Boolean).join("\n");
   const band = inside ? "IF UNDELIVERABLE — CONTENTS SLIP" : ($("optFragile").checked ? "FRAGILE — HANDLE WITH CARE" : "");
   return `<div class="label"><div class="inner">
-    ${bandHTML(band, inside)}
+    ${band ? `<div class="band">${esc(band)}</div>` : ""}
     <div class="toLbl">To</div>
     <div class="toName">${esc(a.name)}</div>
     <div class="toAddr">${esc(addr)}</div>
@@ -544,7 +508,7 @@ function labelHTML(a, inside){
     </div></div></div>`;
 }
 function buildSheets(cls, items){
-  const per = cls === "one" ? 1 : cls === "two" ? 2 : 4;
+  const per = cls === "two" ? 2 : 4;
   let out = "";
   for(let i=0; i<items.length; i+=per){
     const chunk = items.slice(i, i+per);
@@ -561,9 +525,7 @@ function build(){
     for(let i=0; i<(ui[a.id].copies||1); i++) main.push(labelHTML(a,false));
     if($("optInside").checked) slips.push(labelHTML(a,true));
   });
-  /* One recipient, one copy — give it the whole sheet instead of a blank half. */
-  const cls = main.length === 1 ? "one" : size;
-  $("scalerInner").innerHTML = buildSheets(cls,main) + (slips.length ? buildSheets("four",slips) : "");
+  $("scalerInner").innerHTML = buildSheets(size,main) + (slips.length ? buildSheets("four",slips) : "");
   fit();
   say(`${main.length} label${main.length>1?"s":""} ready${slips.length?`, plus ${slips.length} inside slip${slips.length>1?"s":""}`:""}.`);
   return true;
