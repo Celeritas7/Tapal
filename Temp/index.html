@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parcel Labels — India</title>
+<style>
+  :root{
+    --ink:#15171c; --ink-soft:#5a616e; --paper:#fff; --rule:#c7ccd4; --wash:#eef1f5;
+    --post-red:#b3111c; --post-blue:#123a7a; --ok:#12653a; --warn:#8a5a00;
+    --sans:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--wash);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+  .app{max-width:840px;margin:0 auto;padding:20px 16px 90px}
+
+  header.top{padding:18px 0 14px;border-bottom:3px solid var(--ink)}
+  header.top h1{margin:0;font-size:22px;letter-spacing:-.02em}
+  header.top p{margin:6px 0 0;color:var(--ink-soft);font-size:13px}
+
+  .conn{display:inline-flex;align-items:center;gap:7px;font-size:12px;margin-top:10px;
+        padding:4px 10px;border-radius:99px;border:1px solid var(--rule);background:#fff}
+  .dot{width:8px;height:8px;border-radius:50%;background:#bbb}
+  .conn.live .dot{background:var(--ok)} .conn.live{color:var(--ok);border-color:var(--ok)}
+  .conn.off  .dot{background:var(--warn)} .conn.off{color:var(--warn);border-color:var(--warn)}
+
+  section.card{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px;margin-top:18px}
+  section.card > h2{margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  section.card > .hint{margin:0 0 14px;font-size:13px;color:var(--ink-soft)}
+
+  .grid{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+  .grid .full{grid-column:1/-1}
+  @media (max-width:560px){.grid{grid-template-columns:1fr}}
+
+  label.f{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+  input[type=text],input[type=tel],input[type=date],input[type=number],select,textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:4px;
+    font-family:var(--sans);font-size:15px;background:#fff;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--post-blue);outline-offset:1px}
+  input.pin{font-family:var(--mono);letter-spacing:.3em}
+
+  .btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:10px 16px;
+       border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn:hover{background:#2a2e37}
+  .btn.ghost{background:#fff;color:var(--ink)} .btn.ghost:hover{background:var(--wash)}
+  .btn.small{padding:6px 10px;font-size:12.5px}
+  .btn.danger{border-color:var(--post-red);color:var(--post-red);background:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn:focus-visible{outline:2px solid var(--post-blue);outline-offset:2px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+
+  .entry{border:1px solid var(--rule);border-radius:5px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+  .entry.on{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--post-red)}
+  .entry .who{font-weight:700}
+  .entry .addr{font-size:13.5px;color:var(--ink-soft);white-space:pre-line;margin-top:2px}
+  .entry .meta{font-family:var(--mono);font-size:12.5px;margin-top:4px}
+  .entry .acts{margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .copies{width:64px;padding:5px 6px;font-family:var(--mono);text-align:center}
+  .empty{color:var(--ink-soft);font-size:13.5px;padding:10px 0}
+
+  .opt{display:flex;gap:9px;align-items:flex-start;margin:9px 0;font-size:14px}
+  .opt input{margin-top:3px}
+
+  table.log{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  table.log th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+               color:var(--ink-soft);border-bottom:1px solid var(--rule);padding:6px 8px 6px 0;font-weight:600}
+  table.log td{padding:8px 8px 8px 0;border-bottom:1px solid var(--wash);vertical-align:top}
+  table.log td.cn{font-family:var(--mono);font-size:12px}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--rule);white-space:nowrap}
+  .wrapx{overflow-x:auto}
+
+  .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--rule);
+       padding:10px 16px;display:flex;gap:10px;justify-content:center;z-index:5}
+  .status{font-size:12.5px;color:var(--ink-soft);text-align:center;margin-top:8px;min-height:1em}
+
+  #sheets{display:none;background:var(--wash)}
+  body.preview .app{padding-bottom:20px}
+  body.preview #sheets{display:block;padding:0 0 90px}
+  .scaler{overflow-x:auto;padding:14px 0}
+  .scalerInner{transform-origin:top left}
+
+  .sheet{width:210mm;height:297mm;background:#fff;margin:0 auto 14px;position:relative;
+         display:grid;overflow:hidden;border:1px solid var(--rule)}
+  .sheet.two{grid-template-rows:1fr 1fr}
+  .sheet.four{grid-template-rows:1fr 1fr;grid-template-columns:1fr 1fr}
+
+  .label{position:relative;padding:9mm 10mm;display:flex;flex-direction:column;
+         border:1px dashed #b6bcc6;margin:-0.5px;overflow:hidden}
+  .label::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5mm;
+    background:repeating-linear-gradient(135deg,var(--post-red) 0 4mm,#fff 4mm 8mm,var(--post-blue) 8mm 12mm,#fff 12mm 16mm);
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .label .inner{padding-left:6mm;display:flex;flex-direction:column;height:100%}
+
+  .band{font-size:10pt;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+        border:2pt solid #000;padding:1.5mm 3mm;align-self:flex-start;margin-bottom:3mm}
+  .toLbl{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;border-bottom:1pt solid #000;padding-bottom:1mm;margin-bottom:2.5mm}
+  .toName{font-size:19pt;font-weight:700;line-height:1.15;text-transform:uppercase}
+  .toAddr{font-size:13pt;line-height:1.35;margin-top:2mm;white-space:pre-line}
+  .phone{font-family:var(--mono);font-size:13pt;font-weight:700;margin-top:2.5mm}
+  .pinRow{display:flex;align-items:center;gap:3mm;margin-top:3.5mm}
+  .pinRow .pl{font-size:8pt;letter-spacing:.2em;text-transform:uppercase}
+  .pinBoxes{display:flex;gap:1.2mm}
+  .pinBoxes span{width:8mm;height:10mm;border:1.2pt solid #000;display:flex;align-items:center;
+                 justify-content:center;font-family:var(--mono);font-size:16pt;font-weight:700}
+  .foot{margin-top:auto;border-top:1pt solid #000;padding-top:2.5mm;display:flex;gap:5mm;align-items:flex-end}
+  .foot .from{flex:1}
+  .fromLbl{font-size:7.5pt;letter-spacing:.25em;text-transform:uppercase}
+  .fromTxt{font-size:9.5pt;line-height:1.3;white-space:pre-line;margin-top:1mm}
+  .contents{font-size:8.5pt;max-width:60mm;text-align:right;line-height:1.3}
+
+  .sheet.four .label{padding:6mm}
+  .sheet.four .toName{font-size:13pt}
+  .sheet.four .toAddr{font-size:9.5pt}
+  .sheet.four .phone{font-size:10pt}
+  .sheet.four .pinBoxes span{width:5.5mm;height:7mm;font-size:11pt}
+  .sheet.four .band{font-size:7.5pt;margin-bottom:2mm}
+  .sheet.four .fromTxt{font-size:8pt}
+  .sheet.four .contents{font-size:7.5pt;max-width:34mm}
+
+  @media print{
+    @page{size:A4;margin:0}
+    body{background:#fff}
+    .app,.bar{display:none !important}
+    #sheets{display:block !important;padding:0}
+    .scaler{overflow:visible;padding:0}
+    .scalerInner{transform:none !important}
+    .sheet{border:0;margin:0;box-shadow:none;page-break-after:always;break-after:page}
+    .sheet:last-child{page-break-after:auto;break-after:auto}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <h1>Parcel labels</h1>
+    <p>Save an address once. Print from any device, or save as PDF from your phone.</p>
+    <div class="conn" id="conn"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
+  </header>
+
+  <section class="card">
+    <h2>From — your details</h2>
+    <p class="hint">Printed on every label. The post office needs a return address on the parcel itself.</p>
+    <div class="grid">
+      <div><label class="f" for="sName">Name</label><input type="text" id="sName" autocomplete="name"></div>
+      <div><label class="f" for="sPhone">Phone</label><input type="tel" id="sPhone"></div>
+      <div class="full"><label class="f" for="sAddr">Address</label><textarea id="sAddr" rows="2"></textarea></div>
+      <div><label class="f" for="sCity">City</label><input type="text" id="sCity"></div>
+      <div><label class="f" for="sPin">PIN code</label><input type="text" id="sPin" class="pin" inputmode="numeric" maxlength="6"></div>
+    </div>
+    <div class="row"><button class="btn" id="saveSender">Save sender</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Address book</h2>
+    <p class="hint">Tick who you're printing for today and set the number of copies.</p>
+    <div id="list"></div>
+    <div class="row">
+      <button class="btn ghost" id="showAdd">Add an address</button>
+      <button class="btn ghost small" id="selAll">Select all</button>
+      <button class="btn ghost small" id="selNone">Clear selection</button>
+    </div>
+    <div id="addForm" style="display:none;margin-top:16px;border-top:1px solid var(--rule);padding-top:16px">
+      <div class="grid">
+        <div><label class="f" for="rName">Name</label><input type="text" id="rName"></div>
+        <div><label class="f" for="rPhone">Phone</label><input type="tel" id="rPhone"></div>
+        <div class="full"><label class="f" for="rAddr">House / street / area</label><textarea id="rAddr" rows="3"></textarea></div>
+        <div><label class="f" for="rCity">City / town / village</label><input type="text" id="rCity"></div>
+        <div><label class="f" for="rDist">District</label><input type="text" id="rDist"></div>
+        <div><label class="f" for="rState">State</label><select id="rState"><option value="">Select</option></select></div>
+        <div><label class="f" for="rPin">PIN code</label><input type="text" id="rPin" class="pin" inputmode="numeric" maxlength="6"></div>
+      </div>
+      <div class="row">
+        <button class="btn" id="saveAddr">Save address</button>
+        <button class="btn ghost" id="cancelAddr">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Print options</h2>
+    <div class="grid">
+      <div><label class="f" for="size">Label size</label>
+        <select id="size">
+          <option value="two">Large — 2 per A4 page (cartons)</option>
+          <option value="four">Small — 4 per A4 page (small boxes)</option>
+        </select></div>
+      <div><label class="f" for="contents">Contents line (optional)</label>
+        <input type="text" id="contents" placeholder="e.g. Toys — non-hazardous"></div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="opt"><input type="checkbox" id="optFragile"><label for="optFragile">Print a <strong>FRAGILE — HANDLE WITH CARE</strong> band</label></div>
+      <div class="opt"><input type="checkbox" id="optInside" checked><label for="optInside">Add a small duplicate slip for <strong>inside</strong> each box</label></div>
+    </div>
+    <div class="row"><button class="btn ghost" id="previewBtn">Show preview</button></div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <section class="card">
+    <h2>Shipment log</h2>
+    <p class="hint">Consignment numbers, so you're not digging through WhatsApp later.</p>
+    <div class="grid">
+      <div><label class="f" for="lgTo">Sent to</label><select id="lgTo"><option value="">Select</option></select></div>
+      <div><label class="f" for="lgService">Service</label>
+        <select id="lgService">
+          <option>Speed Post</option><option>India Post Parcel (surface)</option>
+          <option>DTDC</option><option>Delhivery</option><option>Blue Dart</option>
+          <option>Xpressbees</option><option>Bus parcel</option><option>Hand carried</option>
+        </select></div>
+      <div class="full"><label class="f" for="lgContents">Contents</label><input type="text" id="lgContents"></div>
+      <div><label class="f" for="lgCn">Consignment no.</label><input type="text" id="lgCn"></div>
+      <div><label class="f" for="lgDate">Booked on</label><input type="date" id="lgDate"></div>
+      <div><label class="f" for="lgCost">Cost (₹)</label><input type="number" id="lgCost" min="0" step="1"></div>
+      <div><label class="f" for="lgStatus">Status</label>
+        <select id="lgStatus"><option>packed</option><option>booked</option><option>in transit</option><option>delivered</option><option>problem</option></select></div>
+    </div>
+    <div class="row"><button class="btn ghost" id="addLog">Add to log</button></div>
+    <div class="wrapx"><table class="log"><thead><tr>
+      <th>Date</th><th>To</th><th>Service</th><th>Consignment</th><th>Status</th><th></th>
+    </tr></thead><tbody id="logBody"></tbody></table></div>
+  </section>
+</div>
+
+<div id="sheets"><div class="scaler"><div class="scalerInner" id="scalerInner"></div></div></div>
+
+<div class="bar">
+  <button class="btn ghost" id="hideBtn" style="display:none">Back to editing</button>
+  <button class="btn" id="printBtn">Print / Save as PDF</button>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/* ---------- config ---------- */
+const SUPABASE_URL = "https://wylxvmkcrexwfpjpbhyy.supabase.co";
+const SUPABASE_KEY = "sb_publishable_e3pDOuxIdstaC7s0a680kQ_R10TrAyv";
+
+const STATES=["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman & Nicobar Islands","Chandigarh","Dadra & Nagar Haveli and Daman & Diu","Delhi","Jammu & Kashmir","Ladakh","Lakshadweep","Puducherry"];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const say = m => { $("status").textContent = m; };
+
+let sb = null, online = false;
+let sender = {}, addresses = [], shipments = [];
+const ui = {};                 // selection + copies, kept client-side only
+let editingId = null;
+
+STATES.forEach(s => $("rState").add(new Option(s, s)));
+$("lgDate").value = new Date().toISOString().slice(0,10);
+
+/* ---------- local fallback (Claude sandbox → window.storage, hosted → localStorage) ---------- */
+const LKEY = "parcel-label-data";
+const local = {
+  async get(){
+    try{ if(window.storage){ const r = await window.storage.get(LKEY); return r? JSON.parse(r.value):null; } }catch(e){}
+    try{ const v = localStorage.getItem(LKEY); return v? JSON.parse(v):null; }catch(e){}
+    return null;
+  },
+  async set(d){
+    try{ if(window.storage){ await window.storage.set(LKEY, JSON.stringify(d)); return; } }catch(e){}
+    try{ localStorage.setItem(LKEY, JSON.stringify(d)); }catch(e){}
+  }
+};
+const snapshot = () => ({ sender, addresses, shipments });
+
+function setConn(state, text){
+  const el = $("conn");
+  el.className = "conn " + state;
+  $("connTxt").textContent = text;
+}
+
+/* ---------- boot ---------- */
+async function boot(){
+  try{
+    sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await sb.from("parcel_app_settings").select("id").limit(1);
+    if(error) throw error;
+    online = true;
+    setConn("live","Synced to Supabase");
+  }catch(e){
+    online = false;
+    setConn("off","Offline — saving on this device only");
+  }
+  await loadAll();
+}
+
+async function loadAll(){
+  if(online){
+    const [s,a,l] = await Promise.all([
+      sb.from("parcel_app_settings").select("*").eq("id","default").maybeSingle(),
+      sb.from("parcel_app_addresses").select("*").eq("archived",false).order("name"),
+      sb.from("parcel_app_shipments").select("*").order("booked_on",{ascending:false}).limit(50)
+    ]);
+    const r = s.data || {};
+    sender = { name:r.sender_name, phone:r.sender_phone, addr:r.sender_line, city:r.sender_city, pin:r.sender_pin };
+    addresses = (a.data || []).map(x => ({...x, addr:x.line}));
+    shipments = l.data || [];
+  }else{
+    const d = await local.get() || {};
+    sender = d.sender || {}; addresses = d.addresses || []; shipments = d.shipments || [];
+  }
+  addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:true, copies:1 }; });
+  fillSender(); render(); renderLog(); fillLogPicker();
+}
+
+function fillSender(){
+  $("sName").value  = sender.name  || "";
+  $("sPhone").value = sender.phone || "";
+  $("sAddr").value  = sender.addr  || "";
+  $("sCity").value  = sender.city  || "";
+  $("sPin").value   = sender.pin   || "";
+}
+
+/* ---------- address book ---------- */
+function render(){
+  const el = $("list");
+  if(!addresses.length){ el.innerHTML = '<p class="empty">No addresses saved yet.</p>'; return; }
+  el.innerHTML = addresses.map(a => {
+    const u = ui[a.id] || {sel:true,copies:1};
+    const line = [a.addr, [a.city,a.district].filter(Boolean).join(", "), a.state].filter(Boolean).join("\n");
+    return `<div class="entry ${u.sel?"on":""}">
+      <input type="checkbox" data-sel="${a.id}" ${u.sel?"checked":""} aria-label="Print for ${esc(a.name)}">
+      <div><div class="who">${esc(a.name)}</div>
+        <div class="addr">${esc(line)}</div>
+        <div class="meta">${esc(a.pin||"")}${a.phone?"  ·  "+esc(a.phone):""}</div></div>
+      <div class="acts">
+        <input class="copies" type="number" min="1" max="20" value="${u.copies}" data-copies="${a.id}" aria-label="Copies">
+        <button class="btn ghost small" data-edit="${a.id}">Edit</button>
+        <button class="btn danger small" data-del="${a.id}">Delete</button>
+      </div></div>`;
+  }).join("");
+}
+
+$("list").addEventListener("change", e => {
+  const t = e.target;
+  const s = t.getAttribute("data-sel"); if(s){ ui[s].sel = t.checked; render(); }
+  const c = t.getAttribute("data-copies"); if(c){ ui[c].copies = Math.max(1,Math.min(20,parseInt(t.value,10)||1)); }
+});
+$("list").addEventListener("click", async e => {
+  const ed = e.target.getAttribute("data-edit"); if(ed){ startEdit(ed); return; }
+  const dl = e.target.getAttribute("data-del");
+  if(dl){
+    if(!confirm("Delete this address?")) return;
+    if(online) await sb.from("parcel_app_addresses").update({archived:true}).eq("id",dl);
+    addresses = addresses.filter(a => a.id !== dl);
+    if(!online) await local.set(snapshot());
+    render(); fillLogPicker(); say("Address deleted.");
+  }
+});
+
+function startEdit(id){
+  const a = addresses.find(x => x.id === id); editingId = id;
+  $("rName").value=a.name||""; $("rPhone").value=a.phone||""; $("rAddr").value=a.addr||"";
+  $("rCity").value=a.city||""; $("rDist").value=a.district||""; $("rState").value=a.state||""; $("rPin").value=a.pin||"";
+  $("addForm").style.display="block"; $("rName").focus();
+}
+$("showAdd").onclick = () => {
+  editingId = null;
+  ["rName","rPhone","rAddr","rCity","rDist","rState","rPin"].forEach(i => $(i).value = "");
+  $("addForm").style.display="block"; $("rName").focus();
+};
+$("cancelAddr").onclick = () => { $("addForm").style.display="none"; editingId=null; };
+
+$("saveAddr").onclick = async () => {
+  const name = $("rName").value.trim(), pin = $("rPin").value.replace(/\D/g,"");
+  if(!name){ say("Add a recipient name first."); return; }
+  if(pin.length !== 6){ say("PIN code must be 6 digits."); return; }
+  const rec = { name, phone:$("rPhone").value.trim(), line:$("rAddr").value.trim(),
+    city:$("rCity").value.trim(), district:$("rDist").value.trim(), state:$("rState").value, pin };
+
+  if(online){
+    const q = editingId
+      ? sb.from("parcel_app_addresses").update(rec).eq("id",editingId).select().single()
+      : sb.from("parcel_app_addresses").insert(rec).select().single();
+    const { data, error } = await q;
+    if(error){ say("Save failed: " + error.message); return; }
+    const row = {...data, addr:data.line};
+    if(!(row.id in ui)) ui[row.id] = { sel:true, copies:1 };
+    addresses = editingId ? addresses.map(a => a.id===editingId?row:a) : [...addresses,row];
+    addresses.sort((x,y) => (x.name||"").localeCompare(y.name||""));
+  }else{
+    const id = editingId || "a"+Date.now();
+    const row = {...rec, id, addr:rec.line};
+    if(!(id in ui)) ui[id] = { sel:true, copies:1 };
+    addresses = editingId ? addresses.map(a => a.id===id?row:a) : [...addresses,row];
+    await local.set(snapshot());
+  }
+  editingId = null; $("addForm").style.display="none";
+  render(); fillLogPicker(); say("Saved.");
+};
+
+$("saveSender").onclick = async () => {
+  sender = { name:$("sName").value.trim(), phone:$("sPhone").value.trim(), addr:$("sAddr").value.trim(),
+             city:$("sCity").value.trim(), pin:$("sPin").value.replace(/\D/g,"") };
+  if(online){
+    const { error } = await sb.from("parcel_app_settings").upsert({
+      id:"default", sender_name:sender.name, sender_phone:sender.phone,
+      sender_line:sender.addr, sender_city:sender.city, sender_pin:sender.pin || null });
+    say(error ? "Save failed: "+error.message : "Sender saved.");
+  }else{ await local.set(snapshot()); say("Sender saved on this device."); }
+};
+$("selAll").onclick  = () => { addresses.forEach(a => ui[a.id].sel = true);  render(); };
+$("selNone").onclick = () => { addresses.forEach(a => ui[a.id].sel = false); render(); };
+
+/* ---------- shipment log ---------- */
+function fillLogPicker(){
+  const sel = $("lgTo"), cur = sel.value;
+  sel.innerHTML = '<option value="">Select</option>';
+  addresses.forEach(a => sel.add(new Option(a.name, a.id)));
+  sel.value = cur;
+}
+function renderLog(){
+  const b = $("logBody");
+  if(!shipments.length){ b.innerHTML = '<tr><td colspan="6" class="empty">Nothing logged yet.</td></tr>'; return; }
+  b.innerHTML = shipments.map(s => `<tr>
+    <td>${esc(s.booked_on||"")}</td>
+    <td>${esc(s.recipient||"")}</td>
+    <td>${esc(s.service||"")}</td>
+    <td class="cn">${esc(s.consignment_no||"—")}</td>
+    <td><span class="pill">${esc(s.status||"")}</span></td>
+    <td><button class="btn danger small" data-dellog="${s.id}">Remove</button></td></tr>`).join("");
+}
+$("logBody").addEventListener("click", async e => {
+  const id = e.target.getAttribute("data-dellog"); if(!id) return;
+  if(online) await sb.from("parcel_app_shipments").delete().eq("id",id);
+  shipments = shipments.filter(s => s.id !== id);
+  if(!online) await local.set(snapshot());
+  renderLog();
+});
+$("addLog").onclick = async () => {
+  const addr = addresses.find(a => a.id === $("lgTo").value);
+  const rec = {
+    address_id: online && addr ? addr.id : null,
+    recipient: addr ? addr.name : "",
+    contents: $("lgContents").value.trim(),
+    service: $("lgService").value,
+    consignment_no: $("lgCn").value.trim(),
+    booked_on: $("lgDate").value || null,
+    cost: $("lgCost").value ? Number($("lgCost").value) : null,
+    status: $("lgStatus").value
+  };
+  if(!rec.recipient){ say("Pick who it went to."); return; }
+  if(online){
+    const { data, error } = await sb.from("parcel_app_shipments").insert(rec).select().single();
+    if(error){ say("Log failed: "+error.message); return; }
+    shipments = [data, ...shipments];
+  }else{
+    shipments = [{...rec, id:"s"+Date.now()}, ...shipments];
+    await local.set(snapshot());
+  }
+  $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
+  renderLog(); say("Logged.");
+};
+
+/* ---------- labels ---------- */
+const pinBoxes = pin => `<div class="pinBoxes">${
+  String(pin||"").padEnd(6," ").slice(0,6).split("").map(d => `<span>${esc(d.trim())}</span>`).join("")}</div>`;
+
+function fromBlock(){
+  return [sender.name, sender.addr, [sender.city,sender.pin].filter(Boolean).join(" - "), sender.phone]
+    .filter(Boolean).join("\n") || "(sender details not filled in)";
+}
+function labelHTML(a, inside){
+  const contents = $("contents").value.trim();
+  const addr = [a.addr, [a.city,a.district].filter(Boolean).join(", "), a.state].filter(Boolean).join("\n");
+  const band = inside ? "IF UNDELIVERABLE — CONTENTS SLIP" : ($("optFragile").checked ? "FRAGILE — HANDLE WITH CARE" : "");
+  return `<div class="label"><div class="inner">
+    ${band ? `<div class="band">${esc(band)}</div>` : ""}
+    <div class="toLbl">To</div>
+    <div class="toName">${esc(a.name)}</div>
+    <div class="toAddr">${esc(addr)}</div>
+    ${a.phone ? `<div class="phone">Ph: ${esc(a.phone)}</div>` : ""}
+    <div class="pinRow"><span class="pl">PIN</span>${pinBoxes(a.pin)}</div>
+    <div class="foot"><div class="from"><div class="fromLbl">From</div>
+      <div class="fromTxt">${esc(fromBlock())}</div></div>
+      ${contents ? `<div class="contents">${esc(contents)}</div>` : ""}
+    </div></div></div>`;
+}
+function buildSheets(cls, items){
+  const per = cls === "two" ? 2 : 4;
+  let out = "";
+  for(let i=0; i<items.length; i+=per){
+    const chunk = items.slice(i, i+per);
+    while(chunk.length < per) chunk.push('<div class="label"></div>');
+    out += `<div class="sheet ${cls}">${chunk.join("")}</div>`;
+  }
+  return out;
+}
+function build(){
+  const chosen = addresses.filter(a => ui[a.id]?.sel);
+  if(!chosen.length){ say("Tick at least one address first."); return false; }
+  const size = $("size").value, main = [], slips = [];
+  chosen.forEach(a => {
+    for(let i=0; i<(ui[a.id].copies||1); i++) main.push(labelHTML(a,false));
+    if($("optInside").checked) slips.push(labelHTML(a,true));
+  });
+  $("scalerInner").innerHTML = buildSheets(size,main) + (slips.length ? buildSheets("four",slips) : "");
+  fit();
+  say(`${main.length} label${main.length>1?"s":""} ready${slips.length?`, plus ${slips.length} inside slip${slips.length>1?"s":""}`:""}.`);
+  return true;
+}
+function fit(){
+  const holder = $("scalerInner").parentNode;
+  const s = Math.min(1, holder.clientWidth / 794);   // 210mm ≈ 794px @96dpi
+  $("scalerInner").style.transform = `scale(${s})`;
+  $("scalerInner").style.height = ($("scalerInner").scrollHeight * s) + "px";
+}
+window.addEventListener("resize", () => { if(document.body.classList.contains("preview")) fit(); });
+
+$("previewBtn").onclick = () => {
+  if(!build()) return;
+  document.body.classList.add("preview");
+  $("hideBtn").style.display = "inline-block";
+  setTimeout(fit,30);
+  $("sheets").scrollIntoView({behavior:"smooth"});
+};
+$("hideBtn").onclick = () => {
+  document.body.classList.remove("preview");
+  $("hideBtn").style.display = "none";
+  window.scrollTo({top:0,behavior:"smooth"});
+};
+$("printBtn").onclick = () => { if(build()) setTimeout(() => window.print(), 60); };
+
+boot();
+</script>
+</body>
+</html>
