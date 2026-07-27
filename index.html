@@ -11,6 +11,9 @@
     --sans:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
     --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
   }
+  body[data-theme="night"]{--ink:#e8eaf0;--ink-soft:#99a2b4;--paper:#20242e;--rule:#3b4254;--wash:#14161c;--post-red:#ff6d76;--post-blue:#82a8ff;--ok:#5ecb8f;--warn:#e2ab41}
+  body[data-theme="kraft"]{--ink:#2c2114;--ink-soft:#6e5c44;--paper:#f8f1e2;--rule:#d3c3a3;--wash:#ece0c8;--post-red:#a33b1f;--post-blue:#3d5a80;--ok:#3f6b34;--warn:#8a5a00}
+  body[data-theme="contrast"]{--ink:#000;--ink-soft:#222;--paper:#fff;--rule:#000;--wash:#fff}
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{background:var(--wash);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
@@ -21,7 +24,7 @@
   header.top p{margin:6px 0 0;color:var(--ink-soft);font-size:13px}
 
   .conn{display:inline-flex;align-items:center;gap:7px;font-size:12px;margin-top:10px;
-        padding:4px 10px;border-radius:99px;border:1px solid var(--rule);background:#fff}
+        padding:4px 10px;border-radius:99px;border:1px solid var(--rule);background:var(--paper)}
   .dot{width:8px;height:8px;border-radius:50%;background:#bbb}
   .conn.live .dot{background:var(--ok)} .conn.live{color:var(--ok);border-color:var(--ok)}
   .conn.off  .dot{background:var(--warn)} .conn.off{color:var(--warn);border-color:var(--warn)}
@@ -37,16 +40,16 @@
   label.f{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
   input[type=text],input[type=tel],input[type=date],input[type=number],select,textarea{
     width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:4px;
-    font-family:var(--sans);font-size:15px;background:#fff;color:var(--ink)}
+    font-family:var(--sans);font-size:15px;background:var(--paper);color:var(--ink)}
   input:focus,select:focus,textarea:focus{outline:2px solid var(--post-blue);outline-offset:1px}
   input.pin{font-family:var(--mono);letter-spacing:.3em}
 
-  .btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:10px 16px;
+  .btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:10px 16px;
        border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-  .btn:hover{background:#2a2e37}
-  .btn.ghost{background:#fff;color:var(--ink)} .btn.ghost:hover{background:var(--wash)}
+  .btn:hover{filter:brightness(1.18)}
+  .btn.ghost{background:var(--paper);color:var(--ink)} .btn.ghost:hover{filter:none;background:var(--wash)}
   .btn.small{padding:6px 10px;font-size:12.5px}
-  .btn.danger{border-color:var(--post-red);color:var(--post-red);background:#fff}
+  .btn.danger{border-color:var(--post-red);color:var(--post-red);background:var(--paper)}
   .btn:disabled{opacity:.45;cursor:not-allowed}
   .btn:focus-visible{outline:2px solid var(--post-blue);outline-offset:2px}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
@@ -87,9 +90,11 @@
   table.log td{padding:8px 8px 8px 0;border-bottom:1px solid var(--wash);vertical-align:top}
   table.log td.cn{font-family:var(--mono);font-size:12px}
   .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--rule);white-space:nowrap}
+  table.log td.best{font-weight:700;color:var(--ok)} table.log td.na{color:var(--ink-soft)}
+  table.log .eta{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
   .wrapx{overflow-x:auto}
 
-  .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--rule);
+  .bar{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:1px solid var(--rule);
        padding:10px 16px;display:flex;gap:10px;justify-content:center;z-index:5}
   .status{font-size:12.5px;color:var(--ink-soft);text-align:center;margin-top:8px;min-height:1em}
 
@@ -99,7 +104,7 @@
   .scaler{overflow-x:auto;padding:14px 0}
   .scalerInner{transform-origin:top left}
 
-  .sheet{width:210mm;height:297mm;background:#fff;margin:0 auto 14px;position:relative;
+  .sheet{width:210mm;height:297mm;background:#fff;color:#15171c;margin:0 auto 14px;position:relative;
          display:grid;overflow:hidden;border:1px solid var(--rule)}
   .sheet.two{grid-template-rows:1fr 1fr}
   .sheet.one{grid-template-rows:1fr}
@@ -170,6 +175,7 @@
     <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
       <div class="conn" id="conn" style="margin-top:0"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
       <button class="btn ghost small" id="signOut" style="display:none">Sign out</button>
+      <select id="themeSel" aria-label="Theme" style="width:auto;padding:5px 8px;font-size:12.5px;margin-left:auto"></select>
     </div>
   </header>
 
@@ -258,6 +264,15 @@
     <p class="status" id="status"></p>
   </section>
 
+  <section class="card" id="costCard">
+    <h2>Cost estimate</h2>
+    <p class="hint">Rough counter rates from your <strong>From</strong> address to each ticked recipient, incl. GST (mid-2026). Couriers bill the <strong>volumetric</strong> weight (L×B×H cm ÷ 5000) when it's higher than the scale weight — confirm on the courier's own calculator before booking.</p>
+    <div class="grid">
+      <div><label class="f" for="estWeight">Parcel weight (kg)</label><input type="number" id="estWeight" min="0.5" max="35" step="0.5" value="1"></div>
+    </div>
+    <div class="wrapx" id="costOut" style="margin-top:12px"></div>
+  </section>
+
   <section class="card">
     <h2>Shipment log</h2>
     <p class="hint">Consignment numbers, so you're not digging through WhatsApp later.</p>
@@ -288,6 +303,7 @@
 
 <div class="bar">
   <button class="btn ghost" id="hideBtn" style="display:none">Back to editing</button>
+  <button class="btn ghost" id="pdfBtn">Download PDF</button>
   <button class="btn" id="printBtn">Print / Save as PDF</button>
 </div>
 
@@ -354,10 +370,21 @@ function restHeaders(){
            Authorization: "Bearer " + (session ? session.access_token : SUPABASE_KEY),
            "Content-Type": "application/json" };
 }
-async function rest(path, opts = {}){
+async function rest(path, opts = {}, retried){
+  /* Tokens die after ~1h; a tab left open needs a refresh before each call. */
+  if(session) await ensureSession();
   const res  = await fetch(REST + path, { ...opts, headers: { ...restHeaders(), ...(opts.headers || {}) } });
   const body = await res.text();
-  if(!res.ok){ const err = new Error(body || ("HTTP " + res.status)); err.status = res.status; throw err; }
+  if(!res.ok){
+    /* Expired mid-flight (PGRST303 / 401): force one refresh and retry. */
+    if(!retried && session && (res.status === 401 || body.includes("PGRST303") || body.includes("JWT expired"))){
+      session.expires_at = 0;
+      await ensureSession();
+      if(session) return rest(path, opts, true);
+      const err = new Error("Signed out — your session expired. Sign in again to save."); err.status = 401; throw err;
+    }
+    const err = new Error(body || ("HTTP " + res.status)); err.status = res.status; throw err;
+  }
   return body ? JSON.parse(body) : null;
 }
 const RETURN = { Prefer: "return=representation" };
@@ -392,6 +419,17 @@ function splitPhone(p){
 function joinPhone(code, num){ return num && code && !num.startsWith("+") ? code + " " + num : num; }
 const ui = {};                 // selection + copies, kept client-side only
 let editingId = null;
+
+/* ---------- themes ---------- */
+const TKEY = "tapal-theme";
+[["","Post office"],["night","Night"],["kraft","Kraft paper"],["contrast","High contrast"]]
+  .forEach(([v,n]) => $("themeSel").add(new Option(n, v)));
+try{ const t = localStorage.getItem(TKEY) || ""; if(t) document.body.dataset.theme = t; $("themeSel").value = t; }catch(e){}
+$("themeSel").onchange = () => {
+  const v = $("themeSel").value;
+  if(v) document.body.dataset.theme = v; else delete document.body.dataset.theme;
+  try{ localStorage.setItem(TKEY, v); }catch(e){}
+};
 
 STATES.forEach(s => $("rState").add(new Option(s, s)));
 $("lgDate").value = new Date().toISOString().slice(0,10);
@@ -516,14 +554,14 @@ async function loadAll(){
   try{ activeSenderId = localStorage.getItem(AKEY) || activeSenderId; }catch(e){}
   if(!senders.some(x => x.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
   addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:true, copies:1, fragile:false }; });
-  renderSenders(); render(); renderLog(); fillLogPicker();
+  renderSenders(); render(); renderLog(); fillLogPicker(); renderCosts();
 }
 
 /* ---------- senders (From blocks) ---------- */
 function renderSenders(){
   const el = $("senderList");
   senders.forEach(s => { if(!(s.id in sui)) sui[s.id] = { sel:false, copies:1, fragile:false }; });
-  if(!senders.length){ el.innerHTML = '<p class="empty">No sender saved yet — add one below.</p>'; return; }
+  if(!senders.length){ el.innerHTML = '<p class="empty">No sender saved yet — add one below.</p>'; renderCosts(); return; }
   el.innerHTML = senders.map(s => {
     const isFrom = s.id === activeSenderId, u = sui[s.id];
     return `<div class="entry ${isFrom ? "on" : ""} ${!isFrom && u.fragile ? "frag" : ""}">
@@ -539,6 +577,7 @@ function renderSenders(){
         ${senders.length > 1 ? `<button class="btn danger small" data-sdel="${s.id}">Delete</button>` : ""}` : ""}
       </div></div>`;
   }).join("");
+  renderCosts();
 }
 function senderLine(s){
   return [s.city, s.state, s.pin, s.country && s.country !== "India" ? s.country : ""].filter(Boolean).join(", ");
@@ -588,7 +627,7 @@ $("cancelSender").onclick = () => { $("senderForm").style.display = "none"; edit
 /* ---------- address book ---------- */
 function render(){
   const el = $("list");
-  if(!addresses.length){ el.innerHTML = '<p class="empty">No addresses saved yet.</p>'; return; }
+  if(!addresses.length){ el.innerHTML = '<p class="empty">No addresses saved yet.</p>'; renderCosts(); return; }
   el.innerHTML = addresses.map(a => {
     const u = ui[a.id] || {sel:true,copies:1,fragile:false};
     const line = [a.city, a.state, a.pin].filter(Boolean).join(", ");
@@ -603,6 +642,7 @@ function render(){
         <button class="btn danger small" data-del="${a.id}">Delete</button>` : ""}
       </div></div>`;
   }).join("");
+  renderCosts();
 }
 
 $("list").addEventListener("change", e => {
@@ -834,6 +874,73 @@ $("addLog").onclick = async () => {
   renderLog(); say("Logged.");
 };
 
+/* ---------- cost estimate ---------- */
+/* Indicative retail counter rates, mid-2026, pre-GST: [first 500 g, each extra 500 g] per zone.
+   Grounded in published tariffs (Speed Post ~₹35–80 local / ₹130–140 >2000 km per kg; India Post
+   Parcel retail ₹36 + ₹16/500 g; private couriers ₹50–90 per 500 g) — estimates, not quotes. */
+const RATES = [
+  ["Speed Post",       {local:[30,10],  state:[60,30],  nat:[90,50]},   "1–4 days"],
+  ["Parcel (surface)", {local:[36,16],  state:[36,16],  nat:[36,16]},   "4–8 days"],
+  ["DTDC",             {local:[60,40],  state:[80,50],  nat:[110,60]},  "2–5 days"],
+  ["Delhivery",        {local:[55,40],  state:[75,50],  nat:[95,65]},   "2–5 days"],
+  ["Blue Dart (air)",  {local:[110,70], state:[160,100],nat:[260,150]}, "1–2 days"]
+];
+/* Speed Post EMS abroad: [first 250 g, each extra 250 g] */
+const EMS = { "Japan":[950,120], "United States":[1820,150], "United Kingdom":[1965,160],
+              "Singapore":[900,110], "Australia":[1400,140], "United Arab Emirates":[950,110] };
+const norm = s => String(s || "").trim().toLowerCase();
+function zoneFor(a){
+  const f = activeSender();
+  if(norm(a.country || "India") !== "india") return "intl";
+  if(norm(a.city)  && norm(a.city)  === norm(f.city))  return "local";
+  if(norm(a.state) && norm(a.state) === norm(f.state)) return "state";
+  return "nat";
+}
+const round5 = n => Math.round(n / 5) * 5;
+const money = n => "₹" + round5(n * 0.9) + "–" + round5(n * 1.25);
+function domesticEst(r, zone, w){
+  const [first, extra] = r[zone];
+  return (first + Math.max(0, Math.ceil((w - 0.5) / 0.5)) * extra) * 1.18;
+}
+function intlEst(country, w){
+  const r = EMS[country];
+  return r ? r[0] + (Math.max(1, Math.ceil(w / 0.25)) - 1) * r[1] : null;
+}
+function renderCosts(){
+  const out = $("costOut"); if(!out) return;
+  const f = activeSender(), chosen = recipients();
+  if(!activeSenderId || !chosen.length){
+    out.innerHTML = '<p class="empty">Pick a From address and tick at least one recipient above to compare courier costs.</p>'; return;
+  }
+  if(norm(f.country || "India") !== "india"){
+    out.innerHTML = '<p class="empty">Estimates cover parcels booked in India — your From address is in ' + esc(f.country) + '. Use the local post or courier calculator there.</p>'; return;
+  }
+  const w = Math.max(0.5, parseFloat($("estWeight").value) || 1);
+  const zones = chosen.map(zoneFor);
+  const zName = { local:"Local", state:"Within state", nat:"Rest of India", intl:"International" };
+  const best = chosen.map(() => Infinity);
+  const cells = RATES.map(([,r]) => chosen.map((a,i) => {
+    if(zones[i] === "intl") return null;
+    const c = domesticEst(r, zones[i], w);
+    if(c < best[i]) best[i] = c;
+    return c;
+  }));
+  const anyIntl = zones.includes("intl");
+  const emsCells = anyIntl ? chosen.map((a,i) => zones[i] === "intl" ? intlEst(a.country, w) : null) : null;
+  if(emsCells) emsCells.forEach((c,i) => { if(c != null && c < best[i]) best[i] = c; });
+  const head = "<tr><th>Service</th>" + chosen.map((a,i) =>
+    `<th>${esc(a.label || a.name)}<br><span style="font-weight:400">${zName[zones[i]]}</span></th>`).join("") + "</tr>";
+  let body = RATES.map(([name,,eta], ri) => `<tr><td>${esc(name)} <span class="eta">${eta}</span></td>` +
+    cells[ri].map((c,i) => c == null ? '<td class="na">—</td>'
+      : `<td class="${c === best[i] ? "best" : ""}">${money(c)}</td>`).join("") + "</tr>").join("");
+  if(anyIntl) body += '<tr><td>Speed Post EMS <span class="eta">4–9 days</span></td>' +
+    emsCells.map((c,i) => zones[i] !== "intl" ? '<td class="na">—</td>'
+      : c == null ? '<td class="na">ask at counter</td>'
+      : `<td class="${c === best[i] ? "best" : ""}">${money(c)}</td>`).join("") + "</tr>";
+  out.innerHTML = `<table class="log"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+$("estWeight").addEventListener("input", renderCosts);
+
 /* ---------- handling band ---------- */
 /* ISO 780-style broken-glass mark. Flat black line-art so it survives a cheap
    laser printer; print-color-adjust keeps it from being dropped. */
@@ -948,6 +1055,40 @@ $("hideBtn").onclick = () => {
   window.scrollTo({top:0,behavior:"smooth"});
 };
 $("printBtn").onclick = () => { if(build()) setTimeout(() => window.print(), 60); };
+
+/* ---------- direct PDF download ---------- */
+/* Renders each A4 sheet to canvas and packs them into one PDF — no print dialog.
+   Libraries load lazily from CDN on first use; offline, the print path still works. */
+const loadScript = src => new Promise((ok, bad) => {
+  const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s);
+});
+$("pdfBtn").onclick = async () => {
+  if(!build()) return;
+  const wasPreview = document.body.classList.contains("preview");
+  document.body.classList.add("preview");
+  $("pdfBtn").disabled = true; say("Preparing PDF…");
+  const inner = $("scalerInner"), keep = inner.style.transform;
+  try{
+    if(!window.jspdf)       await loadScript("https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js");
+    if(!window.html2canvas) await loadScript("https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js");
+    inner.style.transform = "none";
+    const sheets = [...inner.querySelectorAll(".sheet")];
+    const pdf = new jspdf.jsPDF({ unit:"mm", format:"a4", compress:true });
+    for(let i = 0; i < sheets.length; i++){
+      const c = await html2canvas(sheets[i], { scale:2, backgroundColor:"#fff" });
+      if(i) pdf.addPage();
+      pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
+    }
+    pdf.save("parcel-labels-" + new Date().toISOString().slice(0,10) + ".pdf");
+    say("PDF saved to your downloads.");
+  }catch(e){
+    console.error(e);
+    say("Couldn't build the PDF" + (navigator.onLine ? "" : " — you're offline") + ". Use Print / Save as PDF instead.");
+  }
+  inner.style.transform = keep;
+  $("pdfBtn").disabled = false;
+  if(wasPreview) fit(); else document.body.classList.remove("preview");
+};
 
 boot();
 </script>

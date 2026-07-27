@@ -11,6 +11,19 @@ HTML file, no build step, backed by Supabase.
   and precaution tags (GLASS · काँच / THIS SIDE UP ↑ / KEEP DRY)
 - Optional duplicate slip for inside the box
 - Shipment log for consignment numbers, service, cost and status
+- **Download PDF** button — builds the label sheets into a PDF file directly
+  (jsPDF + html2canvas from CDN, loaded on first use; needs to be online —
+  offline, Print / Save as PDF still works)
+- **Themes** — Post office (default), Night, Kraft paper, High contrast;
+  picker in the header, remembered per device. Label sheets always stay
+  white-paper black-ink regardless of theme
+- **Cost estimate** — indicative counter rates (incl. GST, mid-2026) from the
+  selected From address to every ticked recipient, compared across Speed Post,
+  India Post Parcel, DTDC, Delhivery and Blue Dart, plus Speed Post EMS for
+  international recipients. Zones are inferred from city/state/country; the
+  cheapest option per recipient is highlighted. Estimates only — couriers bill
+  volumetric weight (L×B×H ÷ 5000) when higher; rate tables live in `RATES` /
+  `EMS` in `index.html` for easy updating
 - Magic-link email sign-in; access controlled by the shared
   `authentication_mode_user_roles` table — admin and operator can edit,
   viewer is read-only (browsing, selecting and printing still work), and
