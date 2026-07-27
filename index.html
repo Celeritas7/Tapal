@@ -214,12 +214,15 @@
         <div><label class="f" for="rLabel">Address title</label><input type="text" id="rLabel" placeholder="e.g. Meena — office"></div>
         <div><label class="f" for="rName">Name</label><input type="text" id="rName"></div>
         <div><label class="f" for="rPhone">Phone</label><div class="phoneRow"><select id="rCode" aria-label="Country code"></select><input type="tel" id="rPhone"></div></div>
-        <div class="full"><label class="f" for="rAddr">House / street / area</label><textarea id="rAddr" rows="3"></textarea></div>
+        <div><label class="f" for="rHouse">House / flat / building</label><input type="text" id="rHouse"></div>
+        <div><label class="f" for="rStreet">Street / road / area</label><input type="text" id="rStreet"></div>
+        <div class="full"><label class="f" for="rLandmark">Landmark (optional)</label><input type="text" id="rLandmark" placeholder="e.g. Near Kudlu Gate metro station"></div>
+        <div><label class="f" for="rPin">PIN code</label><input type="text" id="rPin" class="pin" inputmode="numeric" maxlength="6"></div>
         <div><label class="f" for="rCity">City / town / village</label><input type="text" id="rCity"></div>
         <div><label class="f" for="rDist">District</label><input type="text" id="rDist"></div>
         <div><label class="f" for="rState">State</label><select id="rState"><option value="">Select</option></select></div>
-        <div><label class="f" for="rPin">PIN code</label><input type="text" id="rPin" class="pin" inputmode="numeric" maxlength="6"></div>
       </div>
+      <p class="hint" id="pinLookup" style="margin:8px 0 0"></p>
       <div class="row">
         <button class="btn" id="saveAddr">Save address</button>
         <button class="btn ghost" id="cancelAddr">Cancel</button>
@@ -529,8 +532,7 @@ function renderSenders(){
   }).join("");
 }
 function senderLine(s){
-  return [String(s.addr || "").replace(/\s*\n\s*/g, ", "), s.city, s.pin,
-          s.country && s.country !== "India" ? s.country : ""].filter(Boolean).join(", ");
+  return [s.city, s.pin, s.country && s.country !== "India" ? s.country : ""].filter(Boolean).join(", ");
 }
 $("senderList").addEventListener("change", e => {
   const t = e.target;
@@ -577,8 +579,7 @@ function render(){
   if(!addresses.length){ el.innerHTML = '<p class="empty">No addresses saved yet.</p>'; return; }
   el.innerHTML = addresses.map(a => {
     const u = ui[a.id] || {sel:true,copies:1,fragile:false};
-    const line = [String(a.addr||"").replace(/\s*\n\s*/g, ", "), a.city, a.district, a.state, a.pin]
-      .filter(Boolean).join(", ");
+    const line = [a.city, a.state, a.pin].filter(Boolean).join(", ");
     return `<div class="entry ${u.sel?"on":""} ${u.fragile?"frag":""}">
       <input type="checkbox" data-sel="${a.id}" ${u.sel?"checked":""} aria-label="Print for ${esc(a.name)}">
       <div class="body"><div class="who">${esc(a.label || a.name)}</div>
@@ -612,27 +613,69 @@ $("list").addEventListener("click", async e => {
   }
 });
 
+/* line ↔ structured fields: house \n street \n landmark */
+function splitLine(addr){
+  const l = String(addr || "").split("\n").map(x => x.trim()).filter(Boolean);
+  if(l.length <= 3) return [l[0] || "", l[1] || "", l[2] || ""];
+  return [l[0], l.slice(1, -1).join(", "), l[l.length - 1]];
+}
 function startEdit(id){
   const a = addresses.find(x => x.id === id); editingId = id;
   $("rLabel").value=a.label||""; $("rName").value=a.name||"";
   const [code,num] = splitPhone(a.phone); $("rCode").value = code || "+91"; $("rPhone").value = num;
-  $("rAddr").value=a.addr||"";
+  const [house, street, mark] = splitLine(a.addr);
+  $("rHouse").value=house; $("rStreet").value=street; $("rLandmark").value=mark;
   $("rCity").value=a.city||""; $("rDist").value=a.district||""; $("rState").value=a.state||""; $("rPin").value=a.pin||"";
+  $("pinLookup").textContent="";
   $("addForm").style.display="block"; $("rName").focus();
 }
 $("showAdd").onclick = () => {
   editingId = null;
-  ["rLabel","rName","rPhone","rAddr","rCity","rDist","rState","rPin"].forEach(i => $(i).value = "");
-  $("rCode").value = "+91";
+  ["rLabel","rName","rPhone","rHouse","rStreet","rLandmark","rCity","rDist","rState","rPin"].forEach(i => $(i).value = "");
+  $("rCode").value = "+91"; $("pinLookup").textContent="";
   $("addForm").style.display="block"; $("rName").focus();
 };
 $("cancelAddr").onclick = () => { $("addForm").style.display="none"; editingId=null; };
+
+/* PIN → city/district/state via India Post's free lookup (api.postalpincode.in).
+   No local pincode database needed; needs to be online, silent when not. */
+let pinTimer;
+async function pinLookup(pin, fill, note){
+  note("Looking up PIN " + pin + "…");
+  try{
+    const r = await fetch("https://api.postalpincode.in/pincode/" + pin);
+    const d = await r.json();
+    const po = d && d[0] && d[0].Status === "Success" ? d[0].PostOffice : null;
+    if(!po || !po.length){ note("PIN " + pin + " not found — fill the fields yourself."); return; }
+    fill(po[0]);
+    note("PIN " + pin + ": " + [po[0].District, po[0].State].filter(Boolean).join(", ") + ".");
+  }catch(e){ note("Couldn't reach the PIN lookup — fill the fields yourself."); }
+}
+$("rPin").addEventListener("input", () => {
+  const pin = $("rPin").value.replace(/\D/g,"");
+  clearTimeout(pinTimer);
+  if(pin.length !== 6){ $("pinLookup").textContent = ""; return; }
+  pinTimer = setTimeout(() => pinLookup(pin, p => {
+    if(!$("rDist").value)  $("rDist").value  = p.District || "";
+    if(!$("rCity").value)  $("rCity").value  = p.Block && p.Block !== "NA" ? p.Block : (p.District || "");
+    if(!$("rState").value) $("rState").value = p.State || "";
+  }, m => { $("pinLookup").textContent = m; }), 300);
+});
+$("sPin").addEventListener("input", () => {
+  const pin = $("sPin").value.replace(/\D/g,"");
+  clearTimeout(pinTimer);
+  if(pin.length !== 6 || ($("sCountry").value.trim() || "India") !== "India") return;
+  pinTimer = setTimeout(() => pinLookup(pin, p => {
+    if(!$("sCity").value) $("sCity").value = p.Block && p.Block !== "NA" ? p.Block : (p.District || "");
+  }, m => { $("senderStatus").textContent = m; }), 300);
+});
 
 $("saveAddr").onclick = async () => {
   const name = $("rName").value.trim(), pin = $("rPin").value.replace(/\D/g,"");
   if(!name){ say("Add a recipient name first."); return; }
   if(pin.length !== 6){ say("PIN code must be 6 digits."); return; }
-  const rec = { label:$("rLabel").value.trim() || null, name, phone:joinPhone($("rCode").value, $("rPhone").value.trim()), line:$("rAddr").value.trim(),
+  const rec = { label:$("rLabel").value.trim() || null, name, phone:joinPhone($("rCode").value, $("rPhone").value.trim()),
+    line:[$("rHouse").value.trim(), $("rStreet").value.trim(), $("rLandmark").value.trim()].filter(Boolean).join("\n"),
     city:$("rCity").value.trim(), district:$("rDist").value.trim(), state:$("rState").value, pin };
 
   if(online){
