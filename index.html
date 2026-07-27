@@ -51,12 +51,24 @@
   .btn:focus-visible{outline:2px solid var(--post-blue);outline-offset:2px}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 
-  .entry{border:1px solid var(--rule);border-radius:5px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+  .entry{border:1px solid var(--rule);border-radius:4px;padding:7px 10px;margin-bottom:5px;display:flex;gap:10px;align-items:center}
   .entry.on{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--post-red)}
-  .entry .who{font-weight:700}
-  .entry .addr{font-size:13.5px;color:var(--ink-soft);white-space:pre-line;margin-top:2px}
-  .entry .meta{font-family:var(--mono);font-size:12.5px;margin-top:4px}
-  .entry .acts{margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .entry .body{min-width:0;flex:1}
+  .entry .who{font-weight:700;font-size:14px;line-height:1.3}
+  .entry .addr{font-size:12.5px;color:var(--ink-soft);line-height:1.35;text-wrap:pretty}
+  .entry .meta{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+  .entry .flag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+             border:1px solid var(--rule);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
+  .entry .acts{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
+  .entry .copies{width:52px}
+  .entry .pick{display:flex;gap:5px;align-items:center;font-size:11px;letter-spacing:.06em;
+             text-transform:uppercase;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
+  .entry.on .pick{color:var(--ink);font-weight:700}
+  .entry .fg{display:flex;gap:5px;align-items:center;font-size:11px;letter-spacing:.06em;
+             text-transform:uppercase;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
+  .entry.frag .who::after{content:"FRAGILE";margin-left:8px;font-size:9.5px;font-weight:700;
+             letter-spacing:.12em;border:1px solid var(--post-red);color:var(--post-red);
+             padding:1px 5px;border-radius:3px;vertical-align:1px}
   .copies{width:64px;padding:5px 6px;font-family:var(--mono);text-align:center}
   .empty{color:var(--ink-soft);font-size:13.5px;padding:10px 0}
 
@@ -149,20 +161,40 @@
   <header class="top">
     <h1>Parcel labels</h1>
     <p>Save an address once. Print from any device, or save as PDF from your phone.</p>
-    <div class="conn" id="conn"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+      <div class="conn" id="conn" style="margin-top:0"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
+      <button class="btn ghost small" id="signOut" style="display:none">Sign out</button>
+    </div>
   </header>
 
-  <section class="card">
-    <h2>From — your details</h2>
-    <p class="hint">Printed on every label. The post office needs a return address on the parcel itself.</p>
+  <section class="card" id="authCard" style="display:none">
+    <h2>Sign in</h2>
+    <p class="hint">This app stores home addresses and phone numbers, so it needs a sign-in. Enter your email and we'll send a one-time link — no password.</p>
     <div class="grid">
-      <div><label class="f" for="sName">Name</label><input type="text" id="sName" autocomplete="name"></div>
-      <div><label class="f" for="sPhone">Phone</label><input type="tel" id="sPhone"></div>
-      <div class="full"><label class="f" for="sAddr">Address</label><textarea id="sAddr" rows="2"></textarea></div>
-      <div><label class="f" for="sCity">City</label><input type="text" id="sCity"></div>
-      <div><label class="f" for="sPin">PIN code</label><input type="text" id="sPin" class="pin" inputmode="numeric" maxlength="6"></div>
+      <div class="full"><label class="f" for="authEmail">Email</label><input type="text" id="authEmail" inputmode="email" autocomplete="email"></div>
     </div>
-    <div class="row"><button class="btn" id="saveSender">Save sender</button></div>
+    <div class="row"><button class="btn" id="sendLink">Send sign-in link</button></div>
+    <p class="status" id="authStatus" style="text-align:left"></p>
+  </section>
+
+  <div id="appMain">
+
+  <section class="card">
+    <h2>From — your addresses</h2>
+    <p class="hint">Pick which address today's parcels are sent <strong>from</strong>. Tick <strong>Send here</strong> on another one to post a parcel between your own addresses — Japan to India, say.</p>
+    <div id="senderList"></div>
+    <div class="row"><button class="btn ghost" id="showSender">Add a sender</button></div>
+    <div id="senderForm" style="display:none;margin-top:16px;border-top:1px solid var(--rule);padding-top:16px">
+      <div class="grid">
+        <div><label class="f" for="sName">Name</label><input type="text" id="sName" autocomplete="name"></div>
+        <div><label class="f" for="sPhone">Phone</label><input type="tel" id="sPhone"></div>
+        <div class="full"><label class="f" for="sAddr">Address</label><textarea id="sAddr" rows="2"></textarea></div>
+        <div><label class="f" for="sCity">City</label><input type="text" id="sCity"></div>
+        <div><label class="f" for="sPin">Postal / PIN code</label><input type="text" id="sPin" class="pin" maxlength="12"></div>
+        <div><label class="f" for="sCountry">Country</label><input type="text" id="sCountry" list="countryList" placeholder="India"><datalist id="countryList"><option>India</option><option>Japan</option><option>United States</option><option>United Kingdom</option><option>Singapore</option><option>Australia</option><option>United Arab Emirates</option></datalist></div>
+      </div>
+      <div class="row"><button class="btn" id="saveSender">Save sender</button><button class="btn ghost" id="cancelSender">Cancel</button></div>
+    </div>
     <p class="status" id="senderStatus" style="text-align:left"></p>
   </section>
 
@@ -204,7 +236,7 @@
         <input type="text" id="contents" placeholder="e.g. Toys — non-hazardous"></div>
     </div>
     <div style="margin-top:12px">
-      <div class="opt"><input type="checkbox" id="optFragile"><label for="optFragile">Print a <strong>FRAGILE — HANDLE WITH CARE</strong> band</label></div>
+      <div class="opt"><input type="checkbox" id="optFragile"><label for="optFragile">Mark <strong>every</strong> label <strong>FRAGILE — HANDLE WITH CARE</strong> — or tick Fragile on single addresses above</label></div>
       <div class="opt"><input type="checkbox" id="optInside" checked><label for="optInside">Add a small duplicate slip for <strong>inside</strong> each box</label></div>
     </div>
     <div class="row"><button class="btn ghost" id="previewBtn">Show preview</button></div>
@@ -234,6 +266,7 @@
       <th>Date</th><th>To</th><th>Service</th><th>Consignment</th><th>Status</th><th></th>
     </tr></thead><tbody id="logBody"></tbody></table></div>
   </section>
+  </div>
 </div>
 
 <div id="sheets"><div class="scaler"><div class="scalerInner" id="scalerInner"></div></div></div>
@@ -250,11 +283,66 @@ const SUPABASE_KEY = "sb_publishable_e3pDOuxIdstaC7s0a680kQ_R10TrAyv";
 
 /* Talks to PostgREST directly — no SDK, no CDN import, one less thing to fail. */
 const REST = SUPABASE_URL + "/rest/v1/";
-const HEAD = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
+const AUTH = SUPABASE_URL + "/auth/v1/";
+
+/* ---------- auth (magic link, no SDK) ---------- */
+const SKEY = "tapal-session";
+let session = null;
+let role = null;   /* admin | operator | viewer, from authentication_mode_user_roles */
+const canWrite = () => !online || role === "admin" || role === "operator";
+try{ session = JSON.parse(localStorage.getItem(SKEY)); }catch(e){}
+
+/* The magic link lands back here with tokens in the URL hash. */
+if(location.hash.includes("access_token=")){
+  const p = new URLSearchParams(location.hash.slice(1));
+  session = { access_token:p.get("access_token"), refresh_token:p.get("refresh_token"),
+              expires_at: Math.floor(Date.now()/1000) + (parseInt(p.get("expires_in"),10) || 3600) };
+  try{ localStorage.setItem(SKEY, JSON.stringify(session)); }catch(e){}
+  history.replaceState(null, "", location.pathname + location.search);
+}
+
+const saveSession = s => { session = s;
+  try{ s ? localStorage.setItem(SKEY, JSON.stringify(s)) : localStorage.removeItem(SKEY); }catch(e){} };
+
+async function authFetch(path, body, bearer){
+  const res = await fetch(AUTH + path, { method: body !== undefined ? "POST" : "GET",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json",
+               ...(bearer && session ? { Authorization: "Bearer " + session.access_token } : {}) },
+    body: body !== undefined ? JSON.stringify(body) : undefined });
+  const txt = await res.text();
+  if(!res.ok){ const err = new Error(txt || ("HTTP " + res.status)); err.status = res.status; throw err; }
+  return txt ? JSON.parse(txt) : null;
+}
+
+async function ensureSession(){
+  if(!session) return null;
+  if(Math.floor(Date.now()/1000) > (session.expires_at || 0) - 60){
+    try{
+      const j = await authFetch("token?grant_type=refresh_token", { refresh_token: session.refresh_token }, false);
+      saveSession({ ...session, access_token: j.access_token, refresh_token: j.refresh_token,
+                    expires_at: Math.floor(Date.now()/1000) + (j.expires_in || 3600),
+                    user_id: (j.user && j.user.id) || session.user_id,
+                    email: (j.user && j.user.email) || session.email });
+    }catch(e){ saveSession(null); return null; }
+  }
+  if(!session.user_id){
+    try{ const u = await authFetch("user", undefined, true); saveSession({ ...session, user_id: u.id, email: u.email }); }
+    catch(e){ saveSession(null); return null; }
+  }
+  return session;
+}
+
+/* Signed in → the user's JWT (RLS scopes rows to them); signed out → the
+   publishable key, which the owner-only policies reject for table access. */
+function restHeaders(){
+  return { apikey: SUPABASE_KEY,
+           Authorization: "Bearer " + (session ? session.access_token : SUPABASE_KEY),
+           "Content-Type": "application/json" };
+}
 async function rest(path, opts = {}){
-  const res  = await fetch(REST + path, { ...opts, headers: { ...HEAD, ...(opts.headers || {}) } });
+  const res  = await fetch(REST + path, { ...opts, headers: { ...restHeaders(), ...(opts.headers || {}) } });
   const body = await res.text();
-  if(!res.ok) throw new Error(body || ("HTTP " + res.status));
+  if(!res.ok){ const err = new Error(body || ("HTTP " + res.status)); err.status = res.status; throw err; }
   return body ? JSON.parse(body) : null;
 }
 const RETURN = { Prefer: "return=representation" };
@@ -268,7 +356,12 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
 const say = m => { $("status").textContent = m; };
 
 let online = false;
-let sender = {}, addresses = [], shipments = [];
+let senders = [], activeSenderId = null, addresses = [], shipments = [];
+const AKEY = "tapal-active-sender";
+const activeSender = () => senders.find(s => s.id === activeSenderId) || {};
+let editingSenderId = null;
+/* per-sender print state, so one of your own addresses can be today's recipient */
+let sui = {};
 const ui = {};                 // selection + copies, kept client-side only
 let editingId = null;
 
@@ -288,7 +381,7 @@ const local = {
     try{ localStorage.setItem(LKEY, JSON.stringify(d)); }catch(e){}
   }
 };
-const snapshot = () => ({ sender, addresses, shipments });
+const snapshot = () => ({ senders, activeSenderId, addresses, shipments });
 
 function setConn(state, text){
   const el = $("conn");
@@ -297,64 +390,185 @@ function setConn(state, text){
 }
 
 /* ---------- boot ---------- */
+function showApp(v){
+  $("appMain").style.display = v ? "" : "none";
+  $("authCard").style.display = v ? "none" : "";
+  document.querySelector(".bar").style.display = v ? "" : "none";
+  $("signOut").style.display = session ? "inline-block" : "none";
+}
+
 async function boot(){
+  const s = await ensureSession();
+  if(!s){
+    let reachable = true;
+    try{ await fetch(AUTH + "health", { headers:{ apikey: SUPABASE_KEY } }); }catch(e){ reachable = false; }
+    if(reachable){
+      setConn("off", "Signed out");
+      showApp(false);
+    }else{
+      online = false;
+      setConn("off", location.protocol === "file:"
+        ? "Offline — open via http://localhost, not the file itself"
+        : "Offline — device only, nothing is syncing");
+      showApp(true);
+      await loadAll();
+    }
+    return;
+  }
   try{
     await rest("tapal_settings?select=id&limit=1");
     online = true;
-    setConn("live","Synced to Supabase");
+    role = await rest("rpc/tapal_my_role", { method:"POST", body:"{}" });
+    if(!role){
+      await doSignOut(false);
+      $("authStatus").textContent = "That email isn't on the access list. Ask an admin to add it, then sign in again.";
+      return;
+    }
+    setConn("live", "Synced — " + (session.email || "signed in") + " · " + role);
   }catch(e){
+    if(e.status === 401 || e.status === 403){ doSignOut(true); return; }
     online = false;
     console.error("Supabase unreachable:", e);
-    setConn("off", location.protocol === "file:"
-      ? "Offline — open via http://localhost, not the file itself"
-      : "Offline — " + String(e.message || e).slice(0,80));
+    setConn("off", "Offline — " + String(e.message || e).slice(0,80));
   }
+  showApp(true);
+  applyRole();
   await loadAll();
 }
+
+/* Viewers can browse, select and print, but not change anything. */
+function applyRole(){
+  const ro = !canWrite();
+  ["showSender","saveSender","showAdd","saveAddr","addLog"].forEach(i => { $(i).disabled = ro; });
+  if(ro){
+    $("senderStatus").textContent = "Read only — your role is viewer.";
+  }
+}
+
+$("sendLink").onclick = async () => {
+  const email = $("authEmail").value.trim();
+  const note = m => { $("authStatus").textContent = m; };
+  if(!/.+@.+\..+/.test(email)){ note("Enter a valid email first."); return; }
+  note("Sending…");
+  try{
+    await authFetch("otp?redirect_to=" + encodeURIComponent(location.origin + location.pathname),
+                    { email, create_user: true }, false);
+    note("Link sent. Open the email on this device and tap the link.");
+  }catch(e){ note("Could not send: " + String(e.message || e).slice(0,120)); }
+};
+
+async function doSignOut(expired){
+  try{ if(session) await authFetch("logout", {}, true); }catch(e){}
+  saveSession(null);
+  role = null;
+  senders = []; activeSenderId = null; addresses = []; shipments = [];
+  showApp(false);
+  setConn("off", "Signed out");
+  $("authStatus").textContent = expired ? "Session expired — sign in again." : "";
+}
+$("signOut").onclick = () => doSignOut(false);
 
 async function loadAll(){
   if(online){
     const [s,a,l] = await Promise.all([
-      rest("tapal_settings?id=eq.default&select=*"),
+      rest("tapal_senders?user_id=eq." + session.user_id + "&select=*&order=created_at"),
       rest("tapal_addresses?archived=eq.false&select=*&order=name"),
       rest("tapal_shipments?select=*&order=booked_on.desc.nullslast&limit=50")
     ]);
-    const r = (s && s[0]) || {};
-    sender = { name:r.sender_name, phone:r.sender_phone, addr:r.sender_line, city:r.sender_city, pin:r.sender_pin };
+    senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, pin:x.pin, country:x.country || "India" }));
     addresses = (a || []).map(x => ({...x, addr:x.line}));
     shipments = l || [];
   }else{
     const d = await local.get() || {};
-    sender = d.sender || {}; addresses = d.addresses || []; shipments = d.shipments || [];
+    /* old single-sender snapshots migrate into a one-item list */
+    senders = d.senders || (d.sender && (d.sender.name || d.sender.addr) ? [{ id:"s1", ...d.sender }] : []);
+    activeSenderId = d.activeSenderId || null;
+    addresses = d.addresses || []; shipments = d.shipments || [];
   }
-  addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:true, copies:1 }; });
-  fillSender(); render(); renderLog(); fillLogPicker();
+  try{ activeSenderId = localStorage.getItem(AKEY) || activeSenderId; }catch(e){}
+  if(!senders.some(x => x.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
+  addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:true, copies:1, fragile:false }; });
+  renderSenders(); render(); renderLog(); fillLogPicker();
 }
 
-function fillSender(){
-  $("sName").value  = sender.name  || "";
-  $("sPhone").value = sender.phone || "";
-  $("sAddr").value  = sender.addr  || "";
-  $("sCity").value  = sender.city  || "";
-  $("sPin").value   = sender.pin   || "";
+/* ---------- senders (From blocks) ---------- */
+function renderSenders(){
+  const el = $("senderList");
+  senders.forEach(s => { if(!(s.id in sui)) sui[s.id] = { sel:false, copies:1, fragile:false }; });
+  if(!senders.length){ el.innerHTML = '<p class="empty">No sender saved yet — add one below.</p>'; return; }
+  el.innerHTML = senders.map(s => {
+    const isFrom = s.id === activeSenderId, u = sui[s.id];
+    return `<div class="entry ${isFrom ? "on" : ""} ${!isFrom && u.fragile ? "frag" : ""}">
+      <label class="pick"><input type="radio" name="senderPick" data-sender="${s.id}" ${isFrom ? "checked" : ""}>From</label>
+      <div class="body"><div class="who">${esc(s.name || "(unnamed)")}${
+        s.country && s.country !== "India" ? `<span class="flag">${esc(s.country)}</span>` : ""}</div>
+        <div class="addr">${esc(senderLine(s))}${s.phone ? ` · <span class="meta">${esc(s.phone)}</span>` : ""}</div></div>
+      <div class="acts">
+        <label class="pick"><input type="checkbox" data-srecv="${s.id}" ${u.sel ? "checked" : ""} ${isFrom ? "disabled" : ""}>Send here</label>
+        ${!isFrom && u.sel ? `<input class="copies" type="number" min="1" max="20" value="${u.copies}" data-scopies="${s.id}" aria-label="Copies">
+        <label class="pick"><input type="checkbox" data-sfrag="${s.id}" ${u.fragile ? "checked" : ""}>Fragile</label>` : ""}
+        ${canWrite() ? `<button class="btn ghost small" data-sedit="${s.id}">Edit</button>
+        ${senders.length > 1 ? `<button class="btn danger small" data-sdel="${s.id}">Delete</button>` : ""}` : ""}
+      </div></div>`;
+  }).join("");
 }
+function senderLine(s){
+  return [String(s.addr || "").replace(/\s*\n\s*/g, ", "), s.city, s.pin,
+          s.country && s.country !== "India" ? s.country : ""].filter(Boolean).join(", ");
+}
+$("senderList").addEventListener("change", e => {
+  const t = e.target;
+  const id = t.getAttribute("data-sender");
+  if(id){
+    activeSenderId = id;
+    if(sui[id]) sui[id].sel = false;          // can't post a parcel to itself
+    try{ localStorage.setItem(AKEY, id); }catch(_){}
+    renderSenders(); $("senderStatus").textContent = "";
+    return;
+  }
+  const r = t.getAttribute("data-srecv"); if(r){ sui[r].sel = t.checked; renderSenders(); return; }
+  const g = t.getAttribute("data-sfrag"); if(g){ sui[g].fragile = t.checked; renderSenders(); return; }
+  const c = t.getAttribute("data-scopies");
+  if(c) sui[c].copies = Math.max(1, Math.min(20, parseInt(t.value,10) || 1));
+});
+$("senderList").addEventListener("click", async e => {
+  const ed = e.target.getAttribute("data-sedit");
+  if(ed){ startSenderEdit(ed); return; }
+  const dl = e.target.getAttribute("data-sdel");
+  if(dl) await deleteSender(dl);
+});
+
+function senderForm(s){
+  $("sName").value  = (s && s.name)  || "";
+  $("sPhone").value = (s && s.phone) || "";
+  $("sAddr").value  = (s && s.addr)  || "";
+  $("sCity").value  = (s && s.city)  || "";
+  $("sPin").value   = (s && s.pin)   || "";
+  $("sCountry").value = (s && s.country) || "India";
+  $("senderForm").style.display = "block";
+  $("sName").focus();
+}
+function startSenderEdit(id){ editingSenderId = id; senderForm(senders.find(s => s.id === id)); }
+$("showSender").onclick   = () => { editingSenderId = null; senderForm(null); };
+$("cancelSender").onclick = () => { $("senderForm").style.display = "none"; editingSenderId = null; };
 
 /* ---------- address book ---------- */
 function render(){
   const el = $("list");
   if(!addresses.length){ el.innerHTML = '<p class="empty">No addresses saved yet.</p>'; return; }
   el.innerHTML = addresses.map(a => {
-    const u = ui[a.id] || {sel:true,copies:1};
-    const line = [a.addr, [a.city,a.district].filter(Boolean).join(", "), a.state].filter(Boolean).join("\n");
-    return `<div class="entry ${u.sel?"on":""}">
+    const u = ui[a.id] || {sel:true,copies:1,fragile:false};
+    const line = [String(a.addr||"").replace(/\s*\n\s*/g, ", "), a.city, a.district, a.state, a.pin]
+      .filter(Boolean).join(", ");
+    return `<div class="entry ${u.sel?"on":""} ${u.fragile?"frag":""}">
       <input type="checkbox" data-sel="${a.id}" ${u.sel?"checked":""} aria-label="Print for ${esc(a.name)}">
-      <div><div class="who">${esc(a.name)}</div>
-        <div class="addr">${esc(line)}</div>
-        <div class="meta">${esc(a.pin||"")}${a.phone?"  ·  "+esc(a.phone):""}</div></div>
+      <div class="body"><div class="who">${esc(a.name)}</div>
+        <div class="addr">${esc(line)}${a.phone?` · <span class="meta">${esc(a.phone)}</span>`:""}</div></div>
       <div class="acts">
         <input class="copies" type="number" min="1" max="20" value="${u.copies}" data-copies="${a.id}" aria-label="Copies">
-        <button class="btn ghost small" data-edit="${a.id}">Edit</button>
-        <button class="btn danger small" data-del="${a.id}">Delete</button>
+        <label class="pick"><input type="checkbox" data-frag="${a.id}" ${u.fragile?"checked":""}>Fragile</label>
+        ${canWrite() ? `<button class="btn ghost small" data-edit="${a.id}">Edit</button>
+        <button class="btn danger small" data-del="${a.id}">Delete</button>` : ""}
       </div></div>`;
   }).join("");
 }
@@ -362,6 +576,7 @@ function render(){
 $("list").addEventListener("change", e => {
   const t = e.target;
   const s = t.getAttribute("data-sel"); if(s){ ui[s].sel = t.checked; render(); }
+  const g = t.getAttribute("data-frag"); if(g){ ui[g].fragile = t.checked; render(); }
   const c = t.getAttribute("data-copies"); if(c){ ui[c].copies = Math.max(1,Math.min(20,parseInt(t.value,10)||1)); }
 });
 $("list").addEventListener("click", async e => {
@@ -420,28 +635,71 @@ $("saveAddr").onclick = async () => {
   render(); fillLogPicker(); say("Saved.");
 };
 
-$("saveSender").onclick = async () => {
+async function persistSender(){
   const note = m => { $("senderStatus").textContent = m; };
-  sender = { name:$("sName").value.trim(), phone:$("sPhone").value.trim(), addr:$("sAddr").value.trim(),
-             city:$("sCity").value.trim(), pin:$("sPin").value.replace(/\D/g,"") };
-  if(sender.pin && sender.pin.length !== 6){ note("PIN code must be 6 digits."); return; }
+  const country = $("sCountry").value.trim() || "India";
+  const rec = { name:$("sName").value.trim(), phone:$("sPhone").value.trim(), addr:$("sAddr").value.trim(),
+                city:$("sCity").value.trim(), pin:$("sPin").value.trim(), country };
+  if(!rec.name){ note("Add a sender name first."); return; }
+  /* Only India gets the 6-digit rule — Japan, the US and the rest have their own formats. */
+  if(country === "India"){
+    rec.pin = rec.pin.replace(/\D/g, "");
+    if(rec.pin && rec.pin.length !== 6){ note("An Indian PIN code must be 6 digits."); return; }
+  }
+  const id = editingSenderId;
   note("Saving…");
   if(online){
     try{
-      await rest("tapal_settings", { method:"POST", headers:UPSERT, body:JSON.stringify({
-        id:"default", sender_name:sender.name, sender_phone:sender.phone,
-        sender_line:sender.addr, sender_city:sender.city, sender_pin:sender.pin || null }) });
-      note("Sender saved.");
-    }catch(e){ note("Save failed: " + e.message); }
+      const body = JSON.stringify({ name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, pin:rec.pin || null, country:rec.country });
+      if(id){
+        await rest("tapal_senders?id=eq." + id, { method:"PATCH", headers:RETURN, body });
+        senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
+      }else{
+        const out = await rest("tapal_senders", { method:"POST", headers:RETURN, body });
+        const r = out[0];
+        senders.push({ id:r.id, name:r.name, phone:r.phone, addr:r.line, city:r.city, pin:r.pin, country:r.country || "India" });
+        activeSenderId = r.id;
+      }
+      note(id ? "Sender updated." : "Sender saved.");
+    }catch(e){ note("Save failed: " + e.message); return; }
   }else{
+    if(id) senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
+    else { const nid = "s" + Date.now(); senders.push({ id:nid, ...rec }); activeSenderId = nid; }
     await local.set(snapshot());
     note("Saved on this device only — not synced. " + (location.protocol === "file:"
       ? "Opening the file directly blocks Supabase; serve it over http://localhost instead."
       : "Check the connection badge at the top."));
   }
-};
+  try{ localStorage.setItem(AKEY, activeSenderId); }catch(_){}
+  editingSenderId = null;
+  $("senderForm").style.display = "none";
+  renderSenders();
+}
+$("saveSender").onclick = () => persistSender();
+
+async function deleteSender(id){
+  if(senders.length < 2) return;
+  const note = m => { $("senderStatus").textContent = m; };
+  if(!confirm("Delete this sender?")) return;
+  if(online){
+    try{ await rest("tapal_senders?id=eq." + id, { method:"DELETE" }); }
+    catch(e){ note("Delete failed: " + e.message); return; }
+  }
+  senders = senders.filter(s => s.id !== id);
+  delete sui[id];
+  if(activeSenderId === id) activeSenderId = senders[0] ? senders[0].id : null;
+  if(!online) await local.set(snapshot());
+  try{ if(activeSenderId) localStorage.setItem(AKEY, activeSenderId); }catch(_){}
+  renderSenders(); note("Sender deleted.");
+}
 $("selAll").onclick  = () => { addresses.forEach(a => ui[a.id].sel = true);  render(); };
 $("selNone").onclick = () => { addresses.forEach(a => ui[a.id].sel = false); render(); };
+/* Master fragile toggle — sets every address at once; rows stay individually editable. */
+$("optFragile").onchange = e => {
+  addresses.forEach(a => ui[a.id].fragile = e.target.checked);
+  senders.forEach(s => { if(sui[s.id]) sui[s.id].fragile = e.target.checked; });
+  render(); renderSenders();
+};
 
 /* ---------- shipment log ---------- */
 function fillLogPicker(){
@@ -459,7 +717,7 @@ function renderLog(){
     <td>${esc(s.service||"")}</td>
     <td class="cn">${esc(s.consignment_no||"—")}</td>
     <td><span class="pill">${esc(s.status||"")}</span></td>
-    <td><button class="btn danger small" data-dellog="${s.id}">Remove</button></td></tr>`).join("");
+    <td>${canWrite() ? `<button class="btn danger small" data-dellog="${s.id}">Remove</button>` : ""}</td></tr>`).join("");
 }
 $("logBody").addEventListener("click", async e => {
   const id = e.target.getAttribute("data-dellog"); if(!id) return;
@@ -523,21 +781,38 @@ function bandHTML(text, inside){
 const pinBoxes = pin => `<div class="pinBoxes">${
   String(pin||"").padEnd(6," ").slice(0,6).split("").map(d => `<span>${esc(d.trim())}</span>`).join("")}</div>`;
 
+/* Labels print the selected sender block. */
 function fromBlock(){
-  return [sender.name, sender.addr, [sender.city,sender.pin].filter(Boolean).join(" - "), sender.phone]
-    .filter(Boolean).join("\n") || "(sender details not filled in)";
+  const s = activeSender();
+  return [s.name, s.addr, [s.city, s.pin].filter(Boolean).join(" - "),
+          s.country && s.country !== "India" ? s.country.toUpperCase() : "", s.phone]
+    .filter(Boolean).join("\n") || "(no sender selected)";
+}
+/* One print state lookup for both lists — address book rows live in ui, your
+   own addresses used as recipients live in sui. */
+const prState = id => ui[id] || sui[id] || { sel:false, copies:1, fragile:false };
+/* Today's recipients: ticked address-book rows, plus any of your own addresses
+   ticked "Send here" (never the one you're sending from). */
+function recipients(){
+  const own = senders.filter(s => s.id !== activeSenderId && sui[s.id] && sui[s.id].sel);
+  return [...addresses.filter(a => ui[a.id] && ui[a.id].sel), ...own];
 }
 function labelHTML(a, inside){
   const contents = $("contents").value.trim();
-  const addr = [a.addr, [a.city,a.district].filter(Boolean).join(", "), a.state].filter(Boolean).join("\n");
-  const band = inside ? "IF UNDELIVERABLE — CONTENTS SLIP" : ($("optFragile").checked ? "FRAGILE — HANDLE WITH CARE" : "");
+  const abroad = a.country && a.country !== "India";
+  const addr = [a.addr, [a.city,a.district].filter(Boolean).join(", "), a.state,
+                abroad ? a.country.toUpperCase() : ""].filter(Boolean).join("\n");
+  const band = inside ? "IF UNDELIVERABLE — CONTENTS SLIP"
+    : (prState(a.id).fragile ? "FRAGILE — HANDLE WITH CARE" : "");
   return `<div class="label"><div class="inner">
     ${bandHTML(band, inside)}
     <div class="toLbl">To</div>
     <div class="toName">${esc(a.name)}</div>
     <div class="toAddr">${esc(addr)}</div>
     ${a.phone ? `<div class="phone">Ph: ${esc(a.phone)}</div>` : ""}
-    <div class="pinRow"><span class="pl">PIN</span>${pinBoxes(a.pin)}</div>
+    ${abroad
+      ? (a.pin ? `<div class="pinRow"><span class="pl">POST CODE</span><span class="toName" style="font-size:15px">${esc(a.pin)}</span></div>` : "")
+      : `<div class="pinRow"><span class="pl">PIN</span>${pinBoxes(a.pin)}</div>`}
     <div class="foot"><div class="from"><div class="fromLbl">From</div>
       <div class="fromTxt">${esc(fromBlock())}</div></div>
       ${contents ? `<div class="contents">${esc(contents)}</div>` : ""}
@@ -554,11 +829,12 @@ function buildSheets(cls, items){
   return out;
 }
 function build(){
-  const chosen = addresses.filter(a => ui[a.id]?.sel);
-  if(!chosen.length){ say("Tick at least one address first."); return false; }
+  const chosen = recipients();
+  if(!activeSenderId){ say("Pick which address you're sending from."); return false; }
+  if(!chosen.length){ say("Tick at least one recipient — an address book row, or “Send here” on one of your own addresses."); return false; }
   const size = $("size").value, main = [], slips = [];
   chosen.forEach(a => {
-    for(let i=0; i<(ui[a.id].copies||1); i++) main.push(labelHTML(a,false));
+    for(let i=0; i<(prState(a.id).copies||1); i++) main.push(labelHTML(a,false));
     if($("optInside").checked) slips.push(labelHTML(a,true));
   });
   /* One recipient, one copy — give it the whole sheet instead of a blank half. */

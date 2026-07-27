@@ -1,102 +1,93 @@
-# Parcel labels
+# Tapal — parcel labels
 
 Printable address labels for Indian parcels, plus a shipment log. Single static
 HTML file, no build step, backed by Supabase.
 
 - Address book, saved once and reused
-- A4 label sheets — 2-up for cartons, 4-up for small boxes
+- A4 label sheets — 2-up for cartons, 4-up for small boxes, and a full-page
+  label when printing for a single recipient
 - Boxed PIN digits in the format postal sorters read fastest
-- Optional FRAGILE band and a duplicate slip for inside the box
+- Per-recipient FRAGILE band with a broken-glass mark, handling instructions
+  and precaution tags (GLASS · काँच / THIS SIDE UP ↑ / KEEP DRY)
+- Optional duplicate slip for inside the box
 - Shipment log for consignment numbers, service, cost and status
+- Magic-link email sign-in; access controlled by the shared
+  `authentication_mode_user_roles` table — admin and operator can edit,
+  viewer is read-only (browsing, selecting and printing still work), and
+  emails not on the list are refused
 
 ## Layout
 
 ```
-index.html                                   the whole app
+index.html                the whole app
+netlify.toml              static deploy config
 supabase/migrations/
   20260726062116_create_parcel_app_tables.sql
+  20260726095203_rename_parcel_app_to_tapal.sql
+  20260727100000_add_user_auth.sql
+  20260727110000_role_based_access.sql
+Temp/                     local scratch — gitignored, never deployed
 ```
 
 ## Running it
 
-There is no build. Open `index.html` in a browser, or serve it:
+There is no build. Serve the folder:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-The badge at the top of the page reports connection state. Green means Supabase
-is reachable; amber means it fell back to device-only storage and nothing is
-syncing.
+Opening `index.html` as a `file://` URL blocks Supabase; the badge falls back to
+device-only storage.
 
 ## Supabase
 
-Already applied to project `wylxvmkcrexwfpjpbhyy` (**General_apps**,
-ap-south-1). The tables are live — the migration file exists so the schema is
-version-controlled, not because anything needs running.
-
-Config lives at the top of the `<script type="module">` block in `index.html`:
-
-```js
-const SUPABASE_URL = "https://wylxvmkcrexwfpjpbhyy.supabase.co";
-const SUPABASE_KEY = "sb_publishable_...";
-```
-
-### Tables
+Project `wylxvmkcrexwfpjpbhyy` (**General_apps**, ap-south-1). Tables:
 
 | Table | Holds |
 | --- | --- |
-| `parcel_app_addresses` | Address book. Deletes are soft (`archived = true`). |
-| `parcel_app_settings` | Sender details, single row keyed `default`. |
-| `parcel_app_shipments` | One row per parcel sent. FK to addresses, `on delete set null`. |
+| `tapal_addresses` | Address book, shared among listed members. Deletes are soft (`archived = true`). |
+| `tapal_settings` | Sender details, one row per user (`id` = the user's uid). |
+| `tapal_shipments` | One row per parcel sent. FK to addresses, `on delete set null`. |
+| `authentication_mode_user_roles` | Shared access list (admin / operator / viewer), also used by the other apps in this project. Not touched by Tapal's migrations except a read-only `tapal_my_role()` helper. |
 
-### Working with the CLI
+Config lives at the top of the `<script>` block in `index.html`.
 
-```bash
-supabase link --project-ref wylxvmkcrexwfpjpbhyy
-```
+### Enabling auth (one-time dashboard setup)
 
-**Do not run `supabase db pull` from this repo.** The project is shared with
-around twenty other apps — a pull would dump all ~115 tables into this repo's
-migration folder. Write migrations by hand and apply them with `db push`, or
-apply them from the dashboard and mirror the SQL here afterwards.
+1. Apply `20260727100000_add_user_auth.sql`, then
+   `20260727110000_role_based_access.sql` (`supabase db push`, or paste them in
+   the SQL editor in order).
+2. Authentication → Providers → **Email**: on, "Confirm email" can stay on —
+   the magic link is the confirmation.
+3. Authentication → URL Configuration → **Redirect URLs**: add the site URL
+   (e.g. `https://<user>.github.io/Tapal/`) and `http://localhost:8000` for
+   local use.
+4. Open the app, send yourself a sign-in link, tap it. Access requires your
+   email to be in `authentication_mode_user_roles`; rows that predate auth
+   need no claiming — they are shared with every listed member.
 
-`supabase db reset` only touches the local dev database, never the remote.
+**Do not run `supabase db pull` from this repo** — the project is shared with
+~20 other apps. Write migrations by hand and `db push`, or apply from the
+dashboard and mirror the SQL here.
 
 ## Security
 
-RLS is enabled but the policies grant `anon` full read and write, matching the
-convention used by the other apps in this project. **Anyone with the project URL
-and the publishable key can read and modify every stored address.**
+RLS is role-based: signed-in users found in `authentication_mode_user_roles`
+can read; only `admin` and `operator` can write; `viewer` is read-only; every
+other email — signed in or not — gets nothing. `anon` has no table access at
+all. The publishable key in `index.html` is meant to be public — it can now
+only be used to request a sign-in link.
 
-The key is in `index.html` and is meant to be public — that is what publishable
-keys are for. The exposure comes from the open policies behind it, not the key
-itself.
-
-This holds home addresses and phone numbers of family and friends. Two options:
-
-1. **Keep the repo private and don't share the deployed URL.** Fine for personal
-   use.
-2. **Add auth.** Turn on Supabase magic-link email auth, add a `user_id uuid
-   default auth.uid()` column to each table, and replace the policies with
-   `using (auth.uid() = user_id)`. Roughly a twenty-line change plus a sign-in
-   screen.
-
-Do option 1 or 2 before the repo goes public.
+The repo and the deployed URL are safe to be public. What the magic link
+protects is your mailbox: anyone who can read your email can sign in as you.
 
 ## Deploying
 
-Any static host works. Netlify, the shortest path:
-
-```bash
-npx netlify-cli deploy --prod --dir .
-```
-
-Or drag the folder onto https://app.netlify.com/drop for a URL in seconds with
-no account.
-
-GitHub Pages works too — Settings → Pages → deploy from branch root. Note that a
-Pages site is public, so read the Security section first.
+Any static host. GitHub Pages: Settings → Pages → deploy from branch root.
+Netlify: `npx netlify-cli deploy --prod --dir .` or drag the folder onto
+https://app.netlify.com/drop. After moving hosts, add the new URL to the
+Supabase redirect list (auth setup step 3).
 
 ## Printing
 
@@ -106,3 +97,8 @@ rule pins A4, so output is correctly sized regardless of the device that made it
 
 Print at 100% scale — "fit to page" will shrink the labels and throw off the
 physical dimensions.
+
+Fragile is per recipient: tick **Fragile** on an address row, or use the
+checkbox in Print options to set every row at once. The Hindi line on the band
+renders from system fonts; on the rare machine without a Devanagari font it
+prints as boxes — the English instructions still carry the meaning.
