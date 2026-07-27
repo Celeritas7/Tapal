@@ -64,6 +64,7 @@
   .entry .pick{display:flex;gap:5px;align-items:center;font-size:11px;letter-spacing:.06em;
              text-transform:uppercase;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
   .entry.on .pick{color:var(--ink);font-weight:700}
+  .phoneRow{display:flex;gap:6px}.phoneRow select{width:110px;flex:none}.phoneRow input{flex:1;min-width:0}
   .entry .fg{display:flex;gap:5px;align-items:center;font-size:11px;letter-spacing:.06em;
              text-transform:uppercase;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
   .entry.frag .who::after{content:"FRAGILE";margin-left:8px;font-size:9.5px;font-weight:700;
@@ -186,8 +187,9 @@
     <div class="row"><button class="btn ghost" id="showSender">Add a sender</button></div>
     <div id="senderForm" style="display:none;margin-top:16px;border-top:1px solid var(--rule);padding-top:16px">
       <div class="grid">
+        <div><label class="f" for="sLabel">Address title</label><input type="text" id="sLabel" placeholder="e.g. Tokyo flat · Madurai home"></div>
         <div><label class="f" for="sName">Name</label><input type="text" id="sName" autocomplete="name"></div>
-        <div><label class="f" for="sPhone">Phone</label><input type="tel" id="sPhone"></div>
+        <div><label class="f" for="sPhone">Phone</label><div class="phoneRow"><select id="sCode" aria-label="Country code"></select><input type="tel" id="sPhone"></div></div>
         <div class="full"><label class="f" for="sAddr">Address</label><textarea id="sAddr" rows="2"></textarea></div>
         <div><label class="f" for="sCity">City</label><input type="text" id="sCity"></div>
         <div><label class="f" for="sPin">Postal / PIN code</label><input type="text" id="sPin" class="pin" maxlength="12"></div>
@@ -209,8 +211,9 @@
     </div>
     <div id="addForm" style="display:none;margin-top:16px;border-top:1px solid var(--rule);padding-top:16px">
       <div class="grid">
+        <div><label class="f" for="rLabel">Address title</label><input type="text" id="rLabel" placeholder="e.g. Meena — office"></div>
         <div><label class="f" for="rName">Name</label><input type="text" id="rName"></div>
-        <div><label class="f" for="rPhone">Phone</label><input type="tel" id="rPhone"></div>
+        <div><label class="f" for="rPhone">Phone</label><div class="phoneRow"><select id="rCode" aria-label="Country code"></select><input type="tel" id="rPhone"></div></div>
         <div class="full"><label class="f" for="rAddr">House / street / area</label><textarea id="rAddr" rows="3"></textarea></div>
         <div><label class="f" for="rCity">City / town / village</label><input type="text" id="rCity"></div>
         <div><label class="f" for="rDist">District</label><input type="text" id="rDist"></div>
@@ -362,6 +365,19 @@ const activeSender = () => senders.find(s => s.id === activeSenderId) || {};
 let editingSenderId = null;
 /* per-sender print state, so one of your own addresses can be today's recipient */
 let sui = {};
+/* dial codes for cross-border parcels; stored as part of the phone text */
+const DIAL = [["+91","India"],["+81","Japan"],["+1","US / Canada"],["+44","UK"],["+65","Singapore"],["+61","Australia"],["+971","UAE"]];
+const COUNTRY_DIAL = { "India":"+91", "Japan":"+81", "United States":"+1", "United Kingdom":"+44", "Singapore":"+65", "Australia":"+61", "United Arab Emirates":"+971" };
+function fillDial(id){ const el = $(id); el.add(new Option("Code","")); DIAL.forEach(([c,n]) => el.add(new Option(c + " " + n, c))); }
+fillDial("sCode"); fillDial("rCode");
+$("sCode").value = "+91"; $("rCode").value = "+91";
+$("sCountry").addEventListener("input", () => { const c = COUNTRY_DIAL[$("sCountry").value.trim()]; if(c) $("sCode").value = c; });
+function splitPhone(p){
+  p = (p || "").trim();
+  const code = DIAL.map(d => d[0]).sort((a,b) => b.length - a.length).find(c => p.startsWith(c));
+  return code ? [code, p.slice(code.length).trim()] : ["", p];
+}
+function joinPhone(code, num){ return num && code && !num.startsWith("+") ? code + " " + num : num; }
 const ui = {};                 // selection + copies, kept client-side only
 let editingId = null;
 
@@ -475,7 +491,7 @@ async function loadAll(){
       rest("tapal_addresses?archived=eq.false&select=*&order=name"),
       rest("tapal_shipments?select=*&order=booked_on.desc.nullslast&limit=50")
     ]);
-    senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, pin:x.pin, country:x.country || "India" }));
+    senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, pin:x.pin, country:x.country || "India", label:x.label || "" }));
     addresses = (a || []).map(x => ({...x, addr:x.line}));
     shipments = l || [];
   }else{
@@ -500,9 +516,9 @@ function renderSenders(){
     const isFrom = s.id === activeSenderId, u = sui[s.id];
     return `<div class="entry ${isFrom ? "on" : ""} ${!isFrom && u.fragile ? "frag" : ""}">
       <label class="pick"><input type="radio" name="senderPick" data-sender="${s.id}" ${isFrom ? "checked" : ""}>From</label>
-      <div class="body"><div class="who">${esc(s.name || "(unnamed)")}${
+      <div class="body"><div class="who">${esc(s.label || s.name || "(unnamed)")}${
         s.country && s.country !== "India" ? `<span class="flag">${esc(s.country)}</span>` : ""}</div>
-        <div class="addr">${esc(senderLine(s))}${s.phone ? ` · <span class="meta">${esc(s.phone)}</span>` : ""}</div></div>
+        <div class="addr">${s.label && s.name ? esc(s.name) + " · " : ""}${esc(senderLine(s))}${s.phone ? ` · <span class="meta">${esc(s.phone)}</span>` : ""}</div></div>
       <div class="acts">
         <label class="pick"><input type="checkbox" data-srecv="${s.id}" ${u.sel ? "checked" : ""} ${isFrom ? "disabled" : ""}>Send here</label>
         ${!isFrom && u.sel ? `<input class="copies" type="number" min="1" max="20" value="${u.copies}" data-scopies="${s.id}" aria-label="Copies">
@@ -539,8 +555,11 @@ $("senderList").addEventListener("click", async e => {
 });
 
 function senderForm(s){
+  $("sLabel").value = (s && s.label) || "";
   $("sName").value  = (s && s.name)  || "";
-  $("sPhone").value = (s && s.phone) || "";
+  const [code, num] = splitPhone(s && s.phone);
+  $("sCode").value = code || COUNTRY_DIAL[(s && s.country) || "India"] || "+91";
+  $("sPhone").value = num;
   $("sAddr").value  = (s && s.addr)  || "";
   $("sCity").value  = (s && s.city)  || "";
   $("sPin").value   = (s && s.pin)   || "";
@@ -562,8 +581,8 @@ function render(){
       .filter(Boolean).join(", ");
     return `<div class="entry ${u.sel?"on":""} ${u.fragile?"frag":""}">
       <input type="checkbox" data-sel="${a.id}" ${u.sel?"checked":""} aria-label="Print for ${esc(a.name)}">
-      <div class="body"><div class="who">${esc(a.name)}</div>
-        <div class="addr">${esc(line)}${a.phone?` · <span class="meta">${esc(a.phone)}</span>`:""}</div></div>
+      <div class="body"><div class="who">${esc(a.label || a.name)}</div>
+        <div class="addr">${a.label && a.name ? esc(a.name) + " · " : ""}${esc(line)}${a.phone?` · <span class="meta">${esc(a.phone)}</span>`:""}</div></div>
       <div class="acts">
         <input class="copies" type="number" min="1" max="20" value="${u.copies}" data-copies="${a.id}" aria-label="Copies">
         <label class="pick"><input type="checkbox" data-frag="${a.id}" ${u.fragile?"checked":""}>Fragile</label>
@@ -595,13 +614,16 @@ $("list").addEventListener("click", async e => {
 
 function startEdit(id){
   const a = addresses.find(x => x.id === id); editingId = id;
-  $("rName").value=a.name||""; $("rPhone").value=a.phone||""; $("rAddr").value=a.addr||"";
+  $("rLabel").value=a.label||""; $("rName").value=a.name||"";
+  const [code,num] = splitPhone(a.phone); $("rCode").value = code || "+91"; $("rPhone").value = num;
+  $("rAddr").value=a.addr||"";
   $("rCity").value=a.city||""; $("rDist").value=a.district||""; $("rState").value=a.state||""; $("rPin").value=a.pin||"";
   $("addForm").style.display="block"; $("rName").focus();
 }
 $("showAdd").onclick = () => {
   editingId = null;
-  ["rName","rPhone","rAddr","rCity","rDist","rState","rPin"].forEach(i => $(i).value = "");
+  ["rLabel","rName","rPhone","rAddr","rCity","rDist","rState","rPin"].forEach(i => $(i).value = "");
+  $("rCode").value = "+91";
   $("addForm").style.display="block"; $("rName").focus();
 };
 $("cancelAddr").onclick = () => { $("addForm").style.display="none"; editingId=null; };
@@ -610,7 +632,7 @@ $("saveAddr").onclick = async () => {
   const name = $("rName").value.trim(), pin = $("rPin").value.replace(/\D/g,"");
   if(!name){ say("Add a recipient name first."); return; }
   if(pin.length !== 6){ say("PIN code must be 6 digits."); return; }
-  const rec = { name, phone:$("rPhone").value.trim(), line:$("rAddr").value.trim(),
+  const rec = { label:$("rLabel").value.trim() || null, name, phone:joinPhone($("rCode").value, $("rPhone").value.trim()), line:$("rAddr").value.trim(),
     city:$("rCity").value.trim(), district:$("rDist").value.trim(), state:$("rState").value, pin };
 
   if(online){
@@ -638,7 +660,8 @@ $("saveAddr").onclick = async () => {
 async function persistSender(){
   const note = m => { $("senderStatus").textContent = m; };
   const country = $("sCountry").value.trim() || "India";
-  const rec = { name:$("sName").value.trim(), phone:$("sPhone").value.trim(), addr:$("sAddr").value.trim(),
+  const rec = { label:$("sLabel").value.trim(), name:$("sName").value.trim(),
+                phone:joinPhone($("sCode").value, $("sPhone").value.trim()), addr:$("sAddr").value.trim(),
                 city:$("sCity").value.trim(), pin:$("sPin").value.trim(), country };
   if(!rec.name){ note("Add a sender name first."); return; }
   /* Only India gets the 6-digit rule — Japan, the US and the rest have their own formats. */
@@ -650,14 +673,14 @@ async function persistSender(){
   note("Saving…");
   if(online){
     try{
-      const body = JSON.stringify({ name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, pin:rec.pin || null, country:rec.country });
+      const body = JSON.stringify({ label:rec.label || null, name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, pin:rec.pin || null, country:rec.country });
       if(id){
         await rest("tapal_senders?id=eq." + id, { method:"PATCH", headers:RETURN, body });
         senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
       }else{
         const out = await rest("tapal_senders", { method:"POST", headers:RETURN, body });
         const r = out[0];
-        senders.push({ id:r.id, name:r.name, phone:r.phone, addr:r.line, city:r.city, pin:r.pin, country:r.country || "India" });
+        senders.push({ id:r.id, label:r.label || "", name:r.name, phone:r.phone, addr:r.line, city:r.city, pin:r.pin, country:r.country || "India" });
         activeSenderId = r.id;
       }
       note(id ? "Sender updated." : "Sender saved.");
@@ -705,7 +728,7 @@ $("optFragile").onchange = e => {
 function fillLogPicker(){
   const sel = $("lgTo"), cur = sel.value;
   sel.innerHTML = '<option value="">Select</option>';
-  addresses.forEach(a => sel.add(new Option(a.name, a.id)));
+  addresses.forEach(a => sel.add(new Option(a.label ? `${a.name} — ${a.label}` : a.name, a.id)));
   sel.value = cur;
 }
 function renderLog(){

@@ -26,6 +26,8 @@ supabase/migrations/
   20260726095203_rename_parcel_app_to_tapal.sql
   20260727100000_add_user_auth.sql
   20260727110000_role_based_access.sql
+  20260727120000_multiple_senders.sql
+  20260727130000_address_titles.sql
 Temp/                     local scratch — gitignored, never deployed
 ```
 
@@ -47,7 +49,8 @@ Project `wylxvmkcrexwfpjpbhyy` (**General_apps**, ap-south-1). Tables:
 | Table | Holds |
 | --- | --- |
 | `tapal_addresses` | Address book, shared among listed members. Deletes are soft (`archived = true`). |
-| `tapal_settings` | Sender details, one row per user (`id` = the user's uid). |
+| `tapal_settings` | Legacy sender columns + connectivity-check ping, one row per user (`id` = the user's uid). |
+| `tapal_senders` | Saved "From" profiles — one row per return address, per user. Writes are own-rows only. |
 | `tapal_shipments` | One row per parcel sent. FK to addresses, `on delete set null`. |
 | `authentication_mode_user_roles` | Shared access list (admin / operator / viewer), also used by the other apps in this project. Not touched by Tapal's migrations except a read-only `tapal_my_role()` helper. |
 
