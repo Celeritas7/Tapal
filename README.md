@@ -28,6 +28,7 @@ supabase/migrations/
   20260727110000_role_based_access.sql
   20260727120000_multiple_senders.sql
   20260727130000_address_titles.sql
+  20260727140000_sender_address_fields.sql
 Temp/                     local scratch — gitignored, never deployed
 ```
 

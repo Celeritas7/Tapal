@@ -195,9 +195,13 @@
         <div><label class="f" for="sLabel">Address title</label><input type="text" id="sLabel" placeholder="e.g. Tokyo flat · Madurai home"></div>
         <div><label class="f" for="sName">Name</label><input type="text" id="sName" autocomplete="name"></div>
         <div><label class="f" for="sPhone">Phone</label><div class="phoneRow"><select id="sCode" aria-label="Country code"></select><input type="tel" id="sPhone"></div></div>
-        <div class="full"><label class="f" for="sAddr">Address</label><textarea id="sAddr" rows="2"></textarea></div>
-        <div><label class="f" for="sCity">City</label><input type="text" id="sCity"></div>
+        <div><label class="f" for="sHouse">House / flat / building</label><input type="text" id="sHouse"></div>
+        <div><label class="f" for="sStreet">Street / road / area</label><input type="text" id="sStreet"></div>
+        <div class="full"><label class="f" for="sLandmark">Landmark (optional)</label><input type="text" id="sLandmark"></div>
         <div><label class="f" for="sPin">Postal / PIN code</label><input type="text" id="sPin" class="pin" maxlength="12"></div>
+        <div><label class="f" for="sCity">City / town / village</label><input type="text" id="sCity"></div>
+        <div><label class="f" for="sDist">District (optional)</label><input type="text" id="sDist"></div>
+        <div><label class="f" for="sState">State / prefecture</label><input type="text" id="sState"></div>
         <div><label class="f" for="sCountry">Country</label><input type="text" id="sCountry" list="countryList" placeholder="India"><datalist id="countryList"><option>India</option><option>Japan</option><option>United States</option><option>United Kingdom</option><option>Singapore</option><option>Australia</option><option>United Arab Emirates</option></datalist></div>
       </div>
       <div class="row"><button class="btn" id="saveSender">Save sender</button><button class="btn ghost" id="cancelSender">Cancel</button></div>
@@ -499,7 +503,7 @@ async function loadAll(){
       rest("tapal_addresses?archived=eq.false&select=*&order=name"),
       rest("tapal_shipments?select=*&order=booked_on.desc.nullslast&limit=50")
     ]);
-    senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, pin:x.pin, country:x.country || "India", label:x.label || "" }));
+    senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, district:x.district || "", state:x.state || "", pin:x.pin, country:x.country || "India", label:x.label || "" }));
     addresses = (a || []).map(x => ({...x, addr:x.line}));
     shipments = l || [];
   }else{
@@ -537,7 +541,7 @@ function renderSenders(){
   }).join("");
 }
 function senderLine(s){
-  return [s.city, s.pin, s.country && s.country !== "India" ? s.country : ""].filter(Boolean).join(", ");
+  return [s.city, s.state, s.pin, s.country && s.country !== "India" ? s.country : ""].filter(Boolean).join(", ");
 }
 $("senderList").addEventListener("change", e => {
   const t = e.target;
@@ -567,8 +571,11 @@ function senderForm(s){
   const [code, num] = splitPhone(s && s.phone);
   $("sCode").value = code || COUNTRY_DIAL[(s && s.country) || "India"] || "+91";
   $("sPhone").value = num;
-  $("sAddr").value  = (s && s.addr)  || "";
+  const [house, street, mark] = splitLine(s && s.addr);
+  $("sHouse").value = house; $("sStreet").value = street; $("sLandmark").value = mark;
   $("sCity").value  = (s && s.city)  || "";
+  $("sDist").value  = (s && s.district) || "";
+  $("sState").value = (s && s.state) || "";
   $("sPin").value   = (s && s.pin)   || "";
   $("sCountry").value = (s && s.country) || "India";
   $("senderForm").style.display = "block";
@@ -671,7 +678,9 @@ $("sPin").addEventListener("input", () => {
   clearTimeout(pinTimer);
   if(pin.length !== 6 || ($("sCountry").value.trim() || "India") !== "India") return;
   pinTimer = setTimeout(() => pinLookup(pin, p => {
-    if(!$("sCity").value) $("sCity").value = p.Block && p.Block !== "NA" ? p.Block : (p.District || "");
+    if(!$("sCity").value)  $("sCity").value  = p.Block && p.Block !== "NA" ? p.Block : (p.District || "");
+    if(!$("sDist").value)  $("sDist").value  = p.District || "";
+    if(!$("sState").value) $("sState").value = p.State || "";
   }, m => { $("senderStatus").textContent = m; }), 300);
 });
 
@@ -709,8 +718,10 @@ async function persistSender(){
   const note = m => { $("senderStatus").textContent = m; };
   const country = $("sCountry").value.trim() || "India";
   const rec = { label:$("sLabel").value.trim(), name:$("sName").value.trim(),
-                phone:joinPhone($("sCode").value, $("sPhone").value.trim()), addr:$("sAddr").value.trim(),
-                city:$("sCity").value.trim(), pin:$("sPin").value.trim(), country };
+                phone:joinPhone($("sCode").value, $("sPhone").value.trim()),
+                addr:[$("sHouse").value.trim(), $("sStreet").value.trim(), $("sLandmark").value.trim()].filter(Boolean).join("\n"),
+                city:$("sCity").value.trim(), district:$("sDist").value.trim(), state:$("sState").value.trim(),
+                pin:$("sPin").value.trim(), country };
   if(!rec.name){ note("Add a sender name first."); return; }
   /* Only India gets the 6-digit rule — Japan, the US and the rest have their own formats. */
   if(country === "India"){
@@ -721,14 +732,14 @@ async function persistSender(){
   note("Saving…");
   if(online){
     try{
-      const body = JSON.stringify({ label:rec.label || null, name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, pin:rec.pin || null, country:rec.country });
+      const body = JSON.stringify({ label:rec.label || null, name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, district:rec.district || null, state:rec.state || null, pin:rec.pin || null, country:rec.country });
       if(id){
         await rest("tapal_senders?id=eq." + id, { method:"PATCH", headers:RETURN, body });
         senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
       }else{
         const out = await rest("tapal_senders", { method:"POST", headers:RETURN, body });
         const r = out[0];
-        senders.push({ id:r.id, label:r.label || "", name:r.name, phone:r.phone, addr:r.line, city:r.city, pin:r.pin, country:r.country || "India" });
+        senders.push({ id:r.id, label:r.label || "", name:r.name, phone:r.phone, addr:r.line, city:r.city, district:r.district || "", state:r.state || "", pin:r.pin, country:r.country || "India" });
         activeSenderId = r.id;
       }
       note(id ? "Sender updated." : "Sender saved.");
@@ -855,7 +866,8 @@ const pinBoxes = pin => `<div class="pinBoxes">${
 /* Labels print the selected sender block. */
 function fromBlock(){
   const s = activeSender();
-  return [s.name, s.addr, [s.city, s.pin].filter(Boolean).join(" - "),
+  return [s.name, s.addr, [s.city, s.district].filter(Boolean).join(", "),
+          [s.state, s.pin].filter(Boolean).join(" - "),
           s.country && s.country !== "India" ? s.country.toUpperCase() : "", s.phone]
     .filter(Boolean).join("\n") || "(no sender selected)";
 }
