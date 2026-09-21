@@ -1,0 +1,84 @@
+/* Printed output: A4 sheets, label geometry, handling band, @media print. */
+  #sheets{display:none;background:var(--wash)}
+  body.preview .app{padding-bottom:20px}
+  body.preview #sheets{display:block;padding:0 0 90px}
+  .scaler{overflow-x:auto;padding:14px 0}
+  .scalerInner{transform-origin:top left}
+
+  .sheet{width:210mm;height:297mm;background:#fff;color:#15171c;margin:0 auto 14px;position:relative;
+         display:grid;overflow:hidden;border:1px solid var(--rule)}
+  .sheet.two{grid-template-rows:1fr 1fr}
+  .sheet.one{grid-template-rows:1fr}
+  .sheet.four{grid-template-rows:1fr 1fr;grid-template-columns:1fr 1fr}
+
+  .label{position:relative;padding:9mm 10mm;display:flex;flex-direction:column;
+         border:1px dashed #b6bcc6;margin:-0.5px;overflow:hidden}
+  .label::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5mm;
+    background:repeating-linear-gradient(135deg,var(--post-red) 0 4mm,#fff 4mm 8mm,var(--post-blue) 8mm 12mm,#fff 12mm 16mm);
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .label .inner{padding-left:6mm;display:flex;flex-direction:column;height:100%}
+
+  .band{border:2pt solid #000;padding:1.5mm 3mm;align-self:flex-start;margin-bottom:3mm;
+        display:flex;align-items:center;gap:3mm}
+  .band svg{height:12mm;width:auto;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .band .bt{font-size:10pt;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+  .band .bn{border-top:1pt solid #000;margin-top:1.2mm;padding-top:1.2mm;font-size:7.5pt;letter-spacing:.12em;line-height:1.3}
+  .band .bm{display:flex;gap:1.5mm;margin-top:1.5mm;flex-wrap:wrap}
+  .band .bm span{border:1pt solid #000;padding:.8mm 2mm;font-size:7.5pt;font-weight:700;letter-spacing:.1em;white-space:nowrap}
+  .toLbl{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;border-bottom:1pt solid #000;padding-bottom:1mm;margin-bottom:2.5mm}
+  .toName{font-size:19pt;font-weight:700;line-height:1.15;text-transform:uppercase}
+  .toAddr{font-size:13pt;line-height:1.35;margin-top:2mm;white-space:pre-line}
+  .phone{font-family:var(--mono);font-size:13pt;font-weight:700;margin-top:2.5mm}
+  .pinRow{display:flex;align-items:center;gap:3mm;margin-top:3.5mm}
+  .pinRow .pl{font-size:8pt;letter-spacing:.2em;text-transform:uppercase}
+  .postBig{font-size:20pt;font-family:var(--mono);letter-spacing:.08em}
+  .sheet.four .postBig{font-size:14pt}
+  .pinBoxes{display:flex;gap:1.2mm}
+  .pinBoxes span{width:8mm;height:10mm;border:1.2pt solid #000;display:flex;align-items:center;
+                 justify-content:center;font-family:var(--mono);font-size:16pt;font-weight:700}
+  .foot{margin-top:auto;border-top:1pt solid #000;padding-top:2.5mm;display:flex;gap:5mm;align-items:flex-end}
+  .foot .from{flex:1}
+  .fromLbl{font-size:7.5pt;letter-spacing:.25em;text-transform:uppercase}
+  .fromTxt{font-size:9.5pt;line-height:1.3;white-space:pre-line;margin-top:1mm}
+  .contents{font-size:8.5pt;max-width:60mm;text-align:right;line-height:1.3}
+
+  .sheet.four .label{padding:6mm}
+  .sheet.four .toName{font-size:13pt}
+  .sheet.four .toAddr{font-size:9.5pt}
+  .sheet.four .phone{font-size:10pt}
+  .sheet.four .pinBoxes span{width:5.5mm;height:7mm;font-size:11pt}
+  .sheet.four .band{margin-bottom:2mm;padding:1.2mm 2mm;gap:2mm}
+  .sheet.four .band svg{height:7mm}
+  .sheet.four .band .bt{font-size:7.5pt}
+  .sheet.four .band .bn,.sheet.four .band .bm span{font-size:6pt}
+  .sheet.four .band .bm{gap:1mm}
+  .sheet.four .band .bm span{padding:.4mm 1.2mm}
+  .sheet.four .fromTxt{font-size:8pt}
+  .sheet.four .contents{font-size:7.5pt;max-width:34mm}
+
+  /* Extra large — one label per A4, for Yamato 140/160 and other big cartons */
+  .sheet.one .label{padding:14mm 16mm}
+  .sheet.one .toLbl,.sheet.one .pinRow .pl,.sheet.one .fromLbl{font-size:10pt}
+  .sheet.one .toName{font-size:30pt}
+  .sheet.one .toAddr{font-size:19pt;margin-top:3mm}
+  .sheet.one .phone{font-size:17pt}
+  .sheet.one .pinRow{margin-top:5mm}
+  .sheet.one .pinBoxes span{width:12mm;height:15mm;font-size:24pt}
+  .sheet.one .postBig{font-size:28pt}
+  .sheet.one .band{padding:2.5mm 4mm;margin-bottom:5mm}
+  .sheet.one .band svg{height:18mm}
+  .sheet.one .band .bt{font-size:14pt}
+  .sheet.one .band .bn,.sheet.one .band .bm span{font-size:9.5pt}
+  .sheet.one .fromTxt{font-size:12pt}
+  .sheet.one .contents{font-size:11pt;max-width:80mm}
+
+  @media print{
+    @page{size:A4;margin:0}
+    body{background:#fff}
+    .app,.bar,.modal,#authCard{display:none !important}
+    #sheets{display:block !important;padding:0}
+    .scaler{overflow:visible;padding:0}
+    .scalerInner{transform:none !important}
+    .sheet{border:0;margin:0;box-shadow:none;page-break-after:always;break-after:page}
+    .sheet:last-child{page-break-after:auto;break-after:auto}
+  }

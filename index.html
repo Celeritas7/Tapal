@@ -3,216 +3,69 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Parcel Labels — India</title>
-<style>
-  :root{
-    --ink:#15171c; --ink-soft:#5a616e; --paper:#fff; --rule:#c7ccd4; --wash:#eef1f5;
-    --post-red:#b3111c; --post-blue:#123a7a; --ok:#12653a; --warn:#8a5a00;
-    --sans:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
-    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
-  }
-  body[data-theme="night"]{--ink:#e8eaf0;--ink-soft:#99a2b4;--paper:#20242e;--rule:#3b4254;--wash:#14161c;--post-red:#ff6d76;--post-blue:#82a8ff;--ok:#5ecb8f;--warn:#e2ab41}
-  body[data-theme="kraft"]{--ink:#2c2114;--ink-soft:#6e5c44;--paper:#f8f1e2;--rule:#d3c3a3;--wash:#ece0c8;--post-red:#a33b1f;--post-blue:#3d5a80;--ok:#3f6b34;--warn:#8a5a00}
-  body[data-theme="contrast"]{--ink:#000;--ink-soft:#222;--paper:#fff;--rule:#000;--wash:#fff}
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
-  body{background:var(--wash);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
-  .app{max-width:840px;margin:0 auto;padding:20px 16px 90px}
-
-  header.top{padding:18px 0 14px;border-bottom:3px solid var(--ink)}
-  header.top h1{margin:0;font-size:22px;letter-spacing:-.02em}
-  header.top p{margin:6px 0 0;color:var(--ink-soft);font-size:13px}
-
-  .conn{display:inline-flex;align-items:center;gap:7px;font-size:12px;margin-top:10px;
-        padding:4px 10px;border-radius:99px;border:1px solid var(--rule);background:var(--paper)}
-  .dot{width:8px;height:8px;border-radius:50%;background:#bbb}
-  .conn.live .dot{background:var(--ok)} .conn.live{color:var(--ok);border-color:var(--ok)}
-  .conn.off  .dot{background:var(--warn)} .conn.off{color:var(--warn);border-color:var(--warn)}
-
-  section.card{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px;margin-top:18px}
-  section.card > h2{margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
-  section.card > .hint{margin:0 0 14px;font-size:13px;color:var(--ink-soft)}
-
-  .grid{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
-  .grid .full{grid-column:1/-1}
-  @media (max-width:560px){.grid{grid-template-columns:1fr}}
-
-  label.f{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
-  input[type=text],input[type=tel],input[type=date],input[type=number],select,textarea{
-    width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:4px;
-    font-family:var(--sans);font-size:15px;background:var(--paper);color:var(--ink)}
-  input:focus,select:focus,textarea:focus{outline:2px solid var(--post-blue);outline-offset:1px}
-  input.pin{font-family:var(--mono);letter-spacing:.3em}
-
-  .btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:10px 16px;
-       border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-  .btn:hover{filter:brightness(1.18)}
-  .btn.ghost{background:var(--paper);color:var(--ink)} .btn.ghost:hover{filter:none;background:var(--wash)}
-  .btn.small{padding:6px 10px;font-size:12.5px}
-  .btn.danger{border-color:var(--post-red);color:var(--post-red);background:var(--paper)}
-  .btn:disabled{opacity:.45;cursor:not-allowed}
-  .btn:focus-visible{outline:2px solid var(--post-blue);outline-offset:2px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
-
-  #senderList,#list{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
-  #senderList .empty,#list .empty{grid-column:1/-1}
-  @media (max-width:640px){#senderList,#list{grid-template-columns:1fr}}
-  .entry{border:1px solid var(--rule);border-radius:4px;padding:8px 10px;margin-bottom:0;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
-  .entry.on{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--post-red)}
-  .entry .body{min-width:0;flex:1}
-  .entry .who{font-weight:700;font-size:14px;line-height:1.3}
-  .entry .addr{font-size:12.5px;color:var(--ink-soft);line-height:1.35;text-wrap:pretty}
-  .entry .meta{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
-  .entry .flag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
-             border:1px solid var(--rule);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
-  .entry .acts{width:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-             border-top:1px solid var(--rule);padding-top:7px;margin-top:2px}
-  .entry .copies{width:52px}
-  .entry .acts .btn:first-of-type{margin-left:auto}
-  .entry .pick{display:flex;gap:5px;align-items:center;font-size:11px;letter-spacing:.06em;
-             text-transform:uppercase;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
-  .entry.on .pick{color:var(--ink);font-weight:700}
-  .phoneRow{display:flex;gap:6px}.phoneRow select{width:110px;flex:none}.phoneRow input{flex:1;min-width:0}
-  .entry .fg{display:flex;gap:5px;align-items:center;font-size:11px;letter-spacing:.06em;
-             text-transform:uppercase;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
-  .entry.frag .who::after{content:"FRAGILE";margin-left:8px;font-size:9.5px;font-weight:700;
-             letter-spacing:.12em;border:1px solid var(--post-red);color:var(--post-red);
-             padding:1px 5px;border-radius:3px;vertical-align:1px}
-  .copies{width:64px;padding:5px 6px;font-family:var(--mono);text-align:center}
-  .empty{color:var(--ink-soft);font-size:13.5px;padding:10px 0}
-
-  .opt{display:flex;gap:9px;align-items:flex-start;margin:9px 0;font-size:14px}
-  .opt input{margin-top:3px}
-
-  table.log{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
-  table.log th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-               color:var(--ink-soft);border-bottom:1px solid var(--rule);padding:6px 8px 6px 0;font-weight:600}
-  table.log td{padding:8px 8px 8px 0;border-bottom:1px solid var(--wash);vertical-align:top}
-  table.log td.cn{font-family:var(--mono);font-size:12px}
-  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--rule);white-space:nowrap}
-  table.log td.best{font-weight:700;color:var(--ok)} table.log td.na{color:var(--ink-soft)}
-  table.log .eta{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
-  .wrapx{overflow-x:auto}
-
-  .bar{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:1px solid var(--rule);
-       padding:10px 16px;display:flex;gap:10px;justify-content:center;z-index:5}
-  .status{font-size:12.5px;color:var(--ink-soft);text-align:center;margin-top:8px;min-height:1em}
-
-  #sheets{display:none;background:var(--wash)}
-  body.preview .app{padding-bottom:20px}
-  body.preview #sheets{display:block;padding:0 0 90px}
-  .scaler{overflow-x:auto;padding:14px 0}
-  .scalerInner{transform-origin:top left}
-
-  .sheet{width:210mm;height:297mm;background:#fff;color:#15171c;margin:0 auto 14px;position:relative;
-         display:grid;overflow:hidden;border:1px solid var(--rule)}
-  .sheet.two{grid-template-rows:1fr 1fr}
-  .sheet.one{grid-template-rows:1fr}
-  .sheet.four{grid-template-rows:1fr 1fr;grid-template-columns:1fr 1fr}
-
-  .label{position:relative;padding:9mm 10mm;display:flex;flex-direction:column;
-         border:1px dashed #b6bcc6;margin:-0.5px;overflow:hidden}
-  .label::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5mm;
-    background:repeating-linear-gradient(135deg,var(--post-red) 0 4mm,#fff 4mm 8mm,var(--post-blue) 8mm 12mm,#fff 12mm 16mm);
-    -webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .label .inner{padding-left:6mm;display:flex;flex-direction:column;height:100%}
-
-  .band{border:2pt solid #000;padding:1.5mm 3mm;align-self:flex-start;margin-bottom:3mm;
-        display:flex;align-items:center;gap:3mm}
-  .band svg{height:12mm;width:auto;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .band .bt{font-size:10pt;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
-  .band .bn{border-top:1pt solid #000;margin-top:1.2mm;padding-top:1.2mm;font-size:7.5pt;letter-spacing:.12em;line-height:1.3}
-  .band .bm{display:flex;gap:1.5mm;margin-top:1.5mm;flex-wrap:wrap}
-  .band .bm span{border:1pt solid #000;padding:.8mm 2mm;font-size:7.5pt;font-weight:700;letter-spacing:.1em;white-space:nowrap}
-  .toLbl{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;border-bottom:1pt solid #000;padding-bottom:1mm;margin-bottom:2.5mm}
-  .toName{font-size:19pt;font-weight:700;line-height:1.15;text-transform:uppercase}
-  .toAddr{font-size:13pt;line-height:1.35;margin-top:2mm;white-space:pre-line}
-  .phone{font-family:var(--mono);font-size:13pt;font-weight:700;margin-top:2.5mm}
-  .pinRow{display:flex;align-items:center;gap:3mm;margin-top:3.5mm}
-  .pinRow .pl{font-size:8pt;letter-spacing:.2em;text-transform:uppercase}
-  .pinBoxes{display:flex;gap:1.2mm}
-  .pinBoxes span{width:8mm;height:10mm;border:1.2pt solid #000;display:flex;align-items:center;
-                 justify-content:center;font-family:var(--mono);font-size:16pt;font-weight:700}
-  .foot{margin-top:auto;border-top:1pt solid #000;padding-top:2.5mm;display:flex;gap:5mm;align-items:flex-end}
-  .foot .from{flex:1}
-  .fromLbl{font-size:7.5pt;letter-spacing:.25em;text-transform:uppercase}
-  .fromTxt{font-size:9.5pt;line-height:1.3;white-space:pre-line;margin-top:1mm}
-  .contents{font-size:8.5pt;max-width:60mm;text-align:right;line-height:1.3}
-
-  .sheet.four .label{padding:6mm}
-  .sheet.four .toName{font-size:13pt}
-  .sheet.four .toAddr{font-size:9.5pt}
-  .sheet.four .phone{font-size:10pt}
-  .sheet.four .pinBoxes span{width:5.5mm;height:7mm;font-size:11pt}
-  .sheet.four .band{margin-bottom:2mm;padding:1.2mm 2mm;gap:2mm}
-  .sheet.four .band svg{height:7mm}
-  .sheet.four .band .bt{font-size:7.5pt}
-  .sheet.four .band .bn,.sheet.four .band .bm span{font-size:6pt}
-  .sheet.four .band .bm{gap:1mm}
-  .sheet.four .band .bm span{padding:.4mm 1.2mm}
-  .sheet.four .fromTxt{font-size:8pt}
-  .sheet.four .contents{font-size:7.5pt;max-width:34mm}
-
-  @media print{
-    @page{size:A4;margin:0}
-    body{background:#fff}
-    .app,.bar{display:none !important}
-    #sheets{display:block !important;padding:0}
-    .scaler{overflow:visible;padding:0}
-    .scalerInner{transform:none !important}
-    .sheet{border:0;margin:0;box-shadow:none;page-break-after:always;break-after:page}
-    .sheet:last-child{page-break-after:auto;break-after:auto}
-  }
-  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
-</style>
+<title>Tapal — parcel labels</title>
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/labels.css">
 </head>
 <body>
 
 <div class="app">
   <header class="top">
-    <h1>Parcel labels</h1>
-    <p>Save an address once. Print from any device, or save as PDF from your phone.</p>
-    <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
-      <div class="conn" id="conn" style="margin-top:0"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
-      <button class="btn ghost small" id="signOut" style="display:none">Sign out</button>
-      <select id="themeSel" aria-label="Theme" style="width:auto;padding:5px 8px;font-size:12.5px;margin-left:auto"></select>
+    <div class="brand">
+      <img class="mark" src="assets/logo.svg" alt="" width="38" height="38">
+      <div class="brandTx"><h1>Tapal</h1><p>Save an address once. Print from any device, or save as PDF from your phone.</p></div>
+      <div class="conn" id="conn"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
     </div>
+    <nav class="tabs" id="tabs" aria-label="Sections">
+      <button class="tab on" data-tab="labels" aria-selected="true">Labels</button>
+      <button class="tab" data-tab="settings" aria-selected="false">Settings</button>
+    </nav>
   </header>
 
-  <section class="card" id="authCard" style="display:none">
-    <h2>Sign in</h2>
-    <p class="hint">This app stores home addresses and phone numbers, so it needs a sign-in. Enter your email and we'll send a one-time link — no password.</p>
-    <div class="grid">
-      <div class="full"><label class="f" for="authEmail">Email</label><input type="text" id="authEmail" inputmode="email" autocomplete="email"></div>
+  <div id="authCard" style="display:none">
+    <div class="loginWrap">
+      <div class="lbrand">
+        <div class="lstripe"></div>
+        <div class="lbrandIn">
+          <img class="mark big" src="assets/logo.svg" alt="" width="56" height="56">
+          <h1>Tapal</h1>
+          <p class="ltag">Parcel labels for India ↔ Japan.</p>
+          <ul class="lpts">
+            <li>A4 sheets — 1, 2 or 4 labels a page</li>
+            <li>Indian PIN and Japanese 〒 formats</li>
+            <li>Shipment log with consignment numbers</li>
+          </ul>
+        </div>
+        <div class="lstripe"></div>
+      </div>
+      <div class="lform">
+        <h2>Sign in</h2>
+        <p class="lsub">Home addresses and phone numbers live in here, so it needs a sign-in.</p>
+        <button class="btn gbtn" id="googleLogin">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2.1 5-4.4 6.6v5.4h7c4.1-3.8 6.7-9.4 6.7-16z"></path><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.4l-7-5.4c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.7-3.9-12.4-9.1h-7.2v5.6C8 40.5 15.4 46 24 46z"></path><path fill="#FBBC05" d="M11.6 28.2c-.5-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.6H4.4C2.9 17.2 2 20.5 2 24s.9 6.8 2.4 9.8l7.2-5.6z"></path><path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.2-6.2C35 4.4 30 2 24 2 15.4 2 8 7.5 4.4 14.2l7.2 5.6C13.3 14.7 18.2 10.8 24 10.8z"></path></svg>
+          Continue with Google
+        </button>
+        <div class="or"><span>or use your email</span></div>
+        <label class="f" for="authEmail">Email</label>
+        <input type="text" id="authEmail" inputmode="email" autocomplete="email" placeholder="you@example.com">
+        <button class="btn" id="sendLink" style="width:100%;margin-top:10px">Email me a sign-in link</button>
+        <p class="status" id="authStatus" style="text-align:left"></p>
+        <p class="lfoot">A one-time link — no password to remember. Your email has to be on the access list in Supabase.</p>
+      </div>
     </div>
-    <div class="row"><button class="btn" id="sendLink">Send sign-in link</button></div>
-    <p class="status" id="authStatus" style="text-align:left"></p>
-  </section>
+  </div>
 
   <div id="appMain">
+  <div id="tabLabels">
 
   <section class="card">
     <h2>From — your addresses</h2>
     <p class="hint">Pick which address today's parcels are sent <strong>from</strong>. Tick <strong>Send here</strong> on another one to post a parcel between your own addresses — Japan to India, say.</p>
     <div id="senderList"></div>
     <div class="row"><button class="btn ghost" id="showSender">Add a sender</button></div>
-    <div id="senderForm" style="display:none;margin-top:16px;border-top:1px solid var(--rule);padding-top:16px">
-      <div class="grid">
-        <div><label class="f" for="sLabel">Address title</label><input type="text" id="sLabel" placeholder="e.g. Tokyo flat · Madurai home"></div>
-        <div><label class="f" for="sName">Name</label><input type="text" id="sName" autocomplete="name"></div>
-        <div><label class="f" for="sPhone">Phone</label><div class="phoneRow"><select id="sCode" aria-label="Country code"></select><input type="tel" id="sPhone"></div></div>
-        <div><label class="f" for="sHouse">House / flat / building</label><input type="text" id="sHouse"></div>
-        <div><label class="f" for="sStreet">Street / road / area</label><input type="text" id="sStreet"></div>
-        <div class="full"><label class="f" for="sLandmark">Landmark (optional)</label><input type="text" id="sLandmark"></div>
-        <div><label class="f" for="sPin">Postal / PIN code</label><input type="text" id="sPin" class="pin" maxlength="12"></div>
-        <div><label class="f" for="sCity">City / town / village</label><input type="text" id="sCity"></div>
-        <div><label class="f" for="sDist">District (optional)</label><input type="text" id="sDist"></div>
-        <div><label class="f" for="sState">State / prefecture</label><input type="text" id="sState"></div>
-        <div><label class="f" for="sCountry">Country</label><input type="text" id="sCountry" list="countryList" placeholder="India"><datalist id="countryList"><option>India</option><option>Japan</option><option>United States</option><option>United Kingdom</option><option>Singapore</option><option>Australia</option><option>United Arab Emirates</option></datalist></div>
-      </div>
-      <div class="row"><button class="btn" id="saveSender">Save sender</button><button class="btn ghost" id="cancelSender">Cancel</button></div>
-    </div>
-    <p class="status" id="senderStatus" style="text-align:left"></p>
+    <p class="status" id="roleNote" style="text-align:left"></p>
   </section>
 
   <section class="card">
@@ -224,25 +77,6 @@
       <button class="btn ghost small" id="selAll">Select all</button>
       <button class="btn ghost small" id="selNone">Clear selection</button>
     </div>
-    <div id="addForm" style="display:none;margin-top:16px;border-top:1px solid var(--rule);padding-top:16px">
-      <div class="grid">
-        <div><label class="f" for="rLabel">Address title</label><input type="text" id="rLabel" placeholder="e.g. Meena — office"></div>
-        <div><label class="f" for="rName">Name</label><input type="text" id="rName"></div>
-        <div><label class="f" for="rPhone">Phone</label><div class="phoneRow"><select id="rCode" aria-label="Country code"></select><input type="tel" id="rPhone"></div></div>
-        <div><label class="f" for="rHouse">House / flat / building</label><input type="text" id="rHouse"></div>
-        <div><label class="f" for="rStreet">Street / road / area</label><input type="text" id="rStreet"></div>
-        <div class="full"><label class="f" for="rLandmark">Landmark (optional)</label><input type="text" id="rLandmark" placeholder="e.g. Near Kudlu Gate metro station"></div>
-        <div><label class="f" for="rPin">PIN code</label><input type="text" id="rPin" class="pin" inputmode="numeric" maxlength="6"></div>
-        <div><label class="f" for="rCity">City / town / village</label><input type="text" id="rCity"></div>
-        <div><label class="f" for="rDist">District</label><input type="text" id="rDist"></div>
-        <div><label class="f" for="rState">State</label><select id="rState"><option value="">Select</option></select></div>
-      </div>
-      <p class="hint" id="pinLookup" style="margin:8px 0 0"></p>
-      <div class="row">
-        <button class="btn" id="saveAddr">Save address</button>
-        <button class="btn ghost" id="cancelAddr">Cancel</button>
-      </div>
-    </div>
   </section>
 
   <section class="card">
@@ -252,6 +86,7 @@
         <select id="size">
           <option value="two">Large — 2 per A4 page (cartons)</option>
           <option value="four">Small — 4 per A4 page (small boxes)</option>
+          <option value="one">Extra large — 1 per A4 page (Yamato 140 / 160, big cartons)</option>
         </select></div>
       <div><label class="f" for="contents">Contents line (optional)</label>
         <input type="text" id="contents" placeholder="e.g. Toys — non-hazardous"></div>
@@ -297,7 +132,42 @@
     </tr></thead><tbody id="logBody"></tbody></table></div>
   </section>
   </div>
+
+  <div id="tabSettings" style="display:none">
+    <section class="card">
+      <h2>Appearance</h2>
+      <p class="hint">Changes the app only — labels always print black on white.</p>
+      <div class="themeGrid" id="themeGrid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Account</h2>
+      <dl class="kv">
+        <dt>Signed in as</dt><dd id="acctEmail">—</dd>
+        <dt>Role</dt><dd id="acctRole">—</dd>
+        <dt>Sync</dt><dd id="acctConn">—</dd>
+      </dl>
+      <div class="row"><button class="btn ghost" id="signOut" style="display:none">Sign out</button></div>
+    </section>
+
+    <section class="card">
+      <h2>About</h2>
+      <p class="hint" style="margin:0">Tapal — parcel labels, address book and shipment log. Data syncs through Supabase; when it can't reach the network the app keeps working on this device only.</p>
+    </section>
+  </div>
+  </div>
 </div>
+
+<div class="modal" id="senderModal"><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="senderModalTitle">
+  <div class="mhead"><h2 id="senderModalTitle">Add a sender</h2><button class="mx" id="closeSender" aria-label="Close">×</button></div>
+  <div class="mbody"><div class="aform" id="sForm"></div><p class="status" id="senderStatus" style="text-align:left;margin:12px 0 0"></p></div>
+  <div class="mfoot"><button class="btn ghost" id="cancelSender">Cancel</button><button class="btn" id="saveSender">Save sender</button></div>
+</div></div>
+<div class="modal" id="addModal"><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+  <div class="mhead"><h2 id="addModalTitle">Add an address</h2><button class="mx" id="closeAddr" aria-label="Close">×</button></div>
+  <div class="mbody"><div class="aform" id="rForm"></div><p class="hint" id="rNote" style="margin:12px 0 0"></p></div>
+  <div class="mfoot"><button class="btn ghost" id="cancelAddr">Cancel</button><button class="btn" id="saveAddr">Save address</button></div>
+</div></div>
 
 <div id="sheets"><div class="scaler"><div class="scalerInner" id="scalerInner"></div></div></div>
 
@@ -307,790 +177,9 @@
   <button class="btn" id="printBtn">Print / Save as PDF</button>
 </div>
 
-<script>
-/* ---------- config ---------- */
-const SUPABASE_URL = "https://wylxvmkcrexwfpjpbhyy.supabase.co";
-const SUPABASE_KEY = "sb_publishable_e3pDOuxIdstaC7s0a680kQ_R10TrAyv";
-
-/* Talks to PostgREST directly — no SDK, no CDN import, one less thing to fail. */
-const REST = SUPABASE_URL + "/rest/v1/";
-const AUTH = SUPABASE_URL + "/auth/v1/";
-
-/* ---------- auth (magic link, no SDK) ---------- */
-const SKEY = "tapal-session";
-let session = null;
-let role = null;   /* admin | operator | viewer, from authentication_mode_user_roles */
-const canWrite = () => !online || role === "admin" || role === "operator";
-try{ session = JSON.parse(localStorage.getItem(SKEY)); }catch(e){}
-
-/* The magic link lands back here with tokens in the URL hash. */
-if(location.hash.includes("access_token=")){
-  const p = new URLSearchParams(location.hash.slice(1));
-  session = { access_token:p.get("access_token"), refresh_token:p.get("refresh_token"),
-              expires_at: Math.floor(Date.now()/1000) + (parseInt(p.get("expires_in"),10) || 3600) };
-  try{ localStorage.setItem(SKEY, JSON.stringify(session)); }catch(e){}
-  history.replaceState(null, "", location.pathname + location.search);
-}
-
-const saveSession = s => { session = s;
-  try{ s ? localStorage.setItem(SKEY, JSON.stringify(s)) : localStorage.removeItem(SKEY); }catch(e){} };
-
-async function authFetch(path, body, bearer){
-  const res = await fetch(AUTH + path, { method: body !== undefined ? "POST" : "GET",
-    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json",
-               ...(bearer && session ? { Authorization: "Bearer " + session.access_token } : {}) },
-    body: body !== undefined ? JSON.stringify(body) : undefined });
-  const txt = await res.text();
-  if(!res.ok){ const err = new Error(txt || ("HTTP " + res.status)); err.status = res.status; throw err; }
-  return txt ? JSON.parse(txt) : null;
-}
-
-async function ensureSession(){
-  if(!session) return null;
-  if(Math.floor(Date.now()/1000) > (session.expires_at || 0) - 60){
-    try{
-      const j = await authFetch("token?grant_type=refresh_token", { refresh_token: session.refresh_token }, false);
-      saveSession({ ...session, access_token: j.access_token, refresh_token: j.refresh_token,
-                    expires_at: Math.floor(Date.now()/1000) + (j.expires_in || 3600),
-                    user_id: (j.user && j.user.id) || session.user_id,
-                    email: (j.user && j.user.email) || session.email });
-    }catch(e){ saveSession(null); return null; }
-  }
-  if(!session.user_id){
-    try{ const u = await authFetch("user", undefined, true); saveSession({ ...session, user_id: u.id, email: u.email }); }
-    catch(e){ saveSession(null); return null; }
-  }
-  return session;
-}
-
-/* Signed in → the user's JWT (RLS scopes rows to them); signed out → the
-   publishable key, which the owner-only policies reject for table access. */
-function restHeaders(){
-  return { apikey: SUPABASE_KEY,
-           Authorization: "Bearer " + (session ? session.access_token : SUPABASE_KEY),
-           "Content-Type": "application/json" };
-}
-async function rest(path, opts = {}, retried){
-  /* Tokens die after ~1h; a tab left open needs a refresh before each call. */
-  if(session) await ensureSession();
-  const res  = await fetch(REST + path, { ...opts, headers: { ...restHeaders(), ...(opts.headers || {}) } });
-  const body = await res.text();
-  if(!res.ok){
-    /* Expired mid-flight (PGRST303 / 401): force one refresh and retry. */
-    if(!retried && session && (res.status === 401 || body.includes("PGRST303") || body.includes("JWT expired"))){
-      session.expires_at = 0;
-      await ensureSession();
-      if(session) return rest(path, opts, true);
-      const err = new Error("Signed out — your session expired. Sign in again to save."); err.status = 401; throw err;
-    }
-    const err = new Error(body || ("HTTP " + res.status)); err.status = res.status; throw err;
-  }
-  return body ? JSON.parse(body) : null;
-}
-const RETURN = { Prefer: "return=representation" };
-const UPSERT = { Prefer: "resolution=merge-duplicates,return=representation" };
-
-const STATES=["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman & Nicobar Islands","Chandigarh","Dadra & Nagar Haveli and Daman & Diu","Delhi","Jammu & Kashmir","Ladakh","Lakshadweep","Puducherry"];
-
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
-  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const say = m => { $("status").textContent = m; };
-
-let online = false;
-let senders = [], activeSenderId = null, addresses = [], shipments = [];
-const AKEY = "tapal-active-sender";
-const activeSender = () => senders.find(s => s.id === activeSenderId) || {};
-let editingSenderId = null;
-/* per-sender print state, so one of your own addresses can be today's recipient */
-let sui = {};
-/* dial codes for cross-border parcels; stored as part of the phone text */
-const DIAL = [["+91","India"],["+81","Japan"],["+1","US / Canada"],["+44","UK"],["+65","Singapore"],["+61","Australia"],["+971","UAE"]];
-const COUNTRY_DIAL = { "India":"+91", "Japan":"+81", "United States":"+1", "United Kingdom":"+44", "Singapore":"+65", "Australia":"+61", "United Arab Emirates":"+971" };
-function fillDial(id){ const el = $(id); el.add(new Option("Code","")); DIAL.forEach(([c,n]) => el.add(new Option(c + " " + n, c))); }
-fillDial("sCode"); fillDial("rCode");
-$("sCode").value = "+91"; $("rCode").value = "+91";
-$("sCountry").addEventListener("input", () => { const c = COUNTRY_DIAL[$("sCountry").value.trim()]; if(c) $("sCode").value = c; });
-function splitPhone(p){
-  p = (p || "").trim();
-  const code = DIAL.map(d => d[0]).sort((a,b) => b.length - a.length).find(c => p.startsWith(c));
-  return code ? [code, p.slice(code.length).trim()] : ["", p];
-}
-function joinPhone(code, num){ return num && code && !num.startsWith("+") ? code + " " + num : num; }
-const ui = {};                 // selection + copies, kept client-side only
-let editingId = null;
-
-/* ---------- themes ---------- */
-const TKEY = "tapal-theme";
-[["","Post office"],["night","Night"],["kraft","Kraft paper"],["contrast","High contrast"]]
-  .forEach(([v,n]) => $("themeSel").add(new Option(n, v)));
-try{ const t = localStorage.getItem(TKEY) || ""; if(t) document.body.dataset.theme = t; $("themeSel").value = t; }catch(e){}
-$("themeSel").onchange = () => {
-  const v = $("themeSel").value;
-  if(v) document.body.dataset.theme = v; else delete document.body.dataset.theme;
-  try{ localStorage.setItem(TKEY, v); }catch(e){}
-};
-
-STATES.forEach(s => $("rState").add(new Option(s, s)));
-$("lgDate").value = new Date().toISOString().slice(0,10);
-
-/* ---------- local fallback (Claude sandbox → window.storage, hosted → localStorage) ---------- */
-const LKEY = "parcel-label-data";
-const local = {
-  async get(){
-    try{ if(window.storage){ const r = await window.storage.get(LKEY); return r? JSON.parse(r.value):null; } }catch(e){}
-    try{ const v = localStorage.getItem(LKEY); return v? JSON.parse(v):null; }catch(e){}
-    return null;
-  },
-  async set(d){
-    try{ if(window.storage){ await window.storage.set(LKEY, JSON.stringify(d)); return; } }catch(e){}
-    try{ localStorage.setItem(LKEY, JSON.stringify(d)); }catch(e){}
-  }
-};
-const snapshot = () => ({ senders, activeSenderId, addresses, shipments });
-
-function setConn(state, text){
-  const el = $("conn");
-  el.className = "conn " + state;
-  $("connTxt").textContent = text;
-}
-
-/* ---------- boot ---------- */
-function showApp(v){
-  $("appMain").style.display = v ? "" : "none";
-  $("authCard").style.display = v ? "none" : "";
-  document.querySelector(".bar").style.display = v ? "" : "none";
-  $("signOut").style.display = session ? "inline-block" : "none";
-}
-
-async function boot(){
-  const s = await ensureSession();
-  if(!s){
-    let reachable = true;
-    try{ await fetch(AUTH + "health", { headers:{ apikey: SUPABASE_KEY } }); }catch(e){ reachable = false; }
-    if(reachable){
-      setConn("off", "Signed out");
-      showApp(false);
-    }else{
-      online = false;
-      setConn("off", location.protocol === "file:"
-        ? "Offline — open via http://localhost, not the file itself"
-        : "Offline — device only, nothing is syncing");
-      showApp(true);
-      await loadAll();
-    }
-    return;
-  }
-  try{
-    await rest("tapal_settings?select=id&limit=1");
-    online = true;
-    role = await rest("rpc/tapal_my_role", { method:"POST", body:"{}" });
-    if(!role){
-      await doSignOut(false);
-      $("authStatus").textContent = "That email isn't on the access list. Ask an admin to add it, then sign in again.";
-      return;
-    }
-    setConn("live", "Synced — " + (session.email || "signed in") + " · " + role);
-  }catch(e){
-    if(e.status === 401 || e.status === 403){ doSignOut(true); return; }
-    online = false;
-    console.error("Supabase unreachable:", e);
-    setConn("off", "Offline — " + String(e.message || e).slice(0,80));
-  }
-  showApp(true);
-  applyRole();
-  await loadAll();
-}
-
-/* Viewers can browse, select and print, but not change anything. */
-function applyRole(){
-  const ro = !canWrite();
-  ["showSender","saveSender","showAdd","saveAddr","addLog"].forEach(i => { $(i).disabled = ro; });
-  if(ro){
-    $("senderStatus").textContent = "Read only — your role is viewer.";
-  }
-}
-
-$("sendLink").onclick = async () => {
-  const email = $("authEmail").value.trim();
-  const note = m => { $("authStatus").textContent = m; };
-  if(!/.+@.+\..+/.test(email)){ note("Enter a valid email first."); return; }
-  note("Sending…");
-  try{
-    await authFetch("otp?redirect_to=" + encodeURIComponent(location.origin + location.pathname),
-                    { email, create_user: true }, false);
-    note("Link sent. Open the email on this device and tap the link.");
-  }catch(e){ note("Could not send: " + String(e.message || e).slice(0,120)); }
-};
-
-async function doSignOut(expired){
-  try{ if(session) await authFetch("logout", {}, true); }catch(e){}
-  saveSession(null);
-  role = null;
-  senders = []; activeSenderId = null; addresses = []; shipments = [];
-  showApp(false);
-  setConn("off", "Signed out");
-  $("authStatus").textContent = expired ? "Session expired — sign in again." : "";
-}
-$("signOut").onclick = () => doSignOut(false);
-
-async function loadAll(){
-  if(online){
-    const [s,a,l] = await Promise.all([
-      rest("tapal_senders?user_id=eq." + session.user_id + "&select=*&order=created_at"),
-      rest("tapal_addresses?archived=eq.false&select=*&order=name"),
-      rest("tapal_shipments?select=*&order=booked_on.desc.nullslast&limit=50")
-    ]);
-    senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, district:x.district || "", state:x.state || "", pin:x.pin, country:x.country || "India", label:x.label || "" }));
-    addresses = (a || []).map(x => ({...x, addr:x.line}));
-    shipments = l || [];
-  }else{
-    const d = await local.get() || {};
-    /* old single-sender snapshots migrate into a one-item list */
-    senders = d.senders || (d.sender && (d.sender.name || d.sender.addr) ? [{ id:"s1", ...d.sender }] : []);
-    activeSenderId = d.activeSenderId || null;
-    addresses = d.addresses || []; shipments = d.shipments || [];
-  }
-  try{ activeSenderId = localStorage.getItem(AKEY) || activeSenderId; }catch(e){}
-  if(!senders.some(x => x.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
-  addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:true, copies:1, fragile:false }; });
-  renderSenders(); render(); renderLog(); fillLogPicker(); renderCosts();
-}
-
-/* ---------- senders (From blocks) ---------- */
-function renderSenders(){
-  const el = $("senderList");
-  senders.forEach(s => { if(!(s.id in sui)) sui[s.id] = { sel:false, copies:1, fragile:false }; });
-  if(!senders.length){ el.innerHTML = '<p class="empty">No sender saved yet — add one below.</p>'; renderCosts(); return; }
-  el.innerHTML = senders.map(s => {
-    const isFrom = s.id === activeSenderId, u = sui[s.id];
-    return `<div class="entry ${isFrom ? "on" : ""} ${!isFrom && u.fragile ? "frag" : ""}">
-      <label class="pick"><input type="radio" name="senderPick" data-sender="${s.id}" ${isFrom ? "checked" : ""}>From</label>
-      <div class="body"><div class="who">${esc(s.label || s.name || "(unnamed)")}${
-        s.country && s.country !== "India" ? `<span class="flag">${esc(s.country)}</span>` : ""}</div>
-        <div class="addr">${s.label && s.name ? esc(s.name) + " · " : ""}${esc(senderLine(s))}${s.phone ? ` · <span class="meta">${esc(s.phone)}</span>` : ""}</div></div>
-      <div class="acts">
-        <label class="pick"><input type="checkbox" data-srecv="${s.id}" ${u.sel ? "checked" : ""} ${isFrom ? "disabled" : ""}>Send here</label>
-        ${!isFrom && u.sel ? `<input class="copies" type="number" min="1" max="20" value="${u.copies}" data-scopies="${s.id}" aria-label="Copies">
-        <label class="pick"><input type="checkbox" data-sfrag="${s.id}" ${u.fragile ? "checked" : ""}>Fragile</label>` : ""}
-        ${canWrite() ? `<button class="btn ghost small" data-sedit="${s.id}">Edit</button>
-        ${senders.length > 1 ? `<button class="btn danger small" data-sdel="${s.id}">Delete</button>` : ""}` : ""}
-      </div></div>`;
-  }).join("");
-  renderCosts();
-}
-function senderLine(s){
-  return [s.city, s.state, s.pin, s.country && s.country !== "India" ? s.country : ""].filter(Boolean).join(", ");
-}
-$("senderList").addEventListener("change", e => {
-  const t = e.target;
-  const id = t.getAttribute("data-sender");
-  if(id){
-    activeSenderId = id;
-    if(sui[id]) sui[id].sel = false;          // can't post a parcel to itself
-    try{ localStorage.setItem(AKEY, id); }catch(_){}
-    renderSenders(); $("senderStatus").textContent = "";
-    return;
-  }
-  const r = t.getAttribute("data-srecv"); if(r){ sui[r].sel = t.checked; renderSenders(); return; }
-  const g = t.getAttribute("data-sfrag"); if(g){ sui[g].fragile = t.checked; renderSenders(); return; }
-  const c = t.getAttribute("data-scopies");
-  if(c) sui[c].copies = Math.max(1, Math.min(20, parseInt(t.value,10) || 1));
-});
-$("senderList").addEventListener("click", async e => {
-  const ed = e.target.getAttribute("data-sedit");
-  if(ed){ startSenderEdit(ed); return; }
-  const dl = e.target.getAttribute("data-sdel");
-  if(dl) await deleteSender(dl);
-});
-
-function senderForm(s){
-  $("sLabel").value = (s && s.label) || "";
-  $("sName").value  = (s && s.name)  || "";
-  const [code, num] = splitPhone(s && s.phone);
-  $("sCode").value = code || COUNTRY_DIAL[(s && s.country) || "India"] || "+91";
-  $("sPhone").value = num;
-  const [house, street, mark] = splitLine(s && s.addr);
-  $("sHouse").value = house; $("sStreet").value = street; $("sLandmark").value = mark;
-  $("sCity").value  = (s && s.city)  || "";
-  $("sDist").value  = (s && s.district) || "";
-  $("sState").value = (s && s.state) || "";
-  $("sPin").value   = (s && s.pin)   || "";
-  $("sCountry").value = (s && s.country) || "India";
-  $("senderForm").style.display = "block";
-  $("sName").focus();
-}
-function startSenderEdit(id){ editingSenderId = id; senderForm(senders.find(s => s.id === id)); }
-$("showSender").onclick   = () => { editingSenderId = null; senderForm(null); };
-$("cancelSender").onclick = () => { $("senderForm").style.display = "none"; editingSenderId = null; };
-
-/* ---------- address book ---------- */
-function render(){
-  const el = $("list");
-  if(!addresses.length){ el.innerHTML = '<p class="empty">No addresses saved yet.</p>'; renderCosts(); return; }
-  el.innerHTML = addresses.map(a => {
-    const u = ui[a.id] || {sel:true,copies:1,fragile:false};
-    const line = [a.city, a.state, a.pin].filter(Boolean).join(", ");
-    return `<div class="entry ${u.sel?"on":""} ${u.fragile?"frag":""}">
-      <input type="checkbox" data-sel="${a.id}" ${u.sel?"checked":""} aria-label="Print for ${esc(a.name)}">
-      <div class="body"><div class="who">${esc(a.label || a.name)}</div>
-        <div class="addr">${a.label && a.name ? esc(a.name) + " · " : ""}${esc(line)}${a.phone?` · <span class="meta">${esc(a.phone)}</span>`:""}</div></div>
-      <div class="acts">
-        <input class="copies" type="number" min="1" max="20" value="${u.copies}" data-copies="${a.id}" aria-label="Copies">
-        <label class="pick"><input type="checkbox" data-frag="${a.id}" ${u.fragile?"checked":""}>Fragile</label>
-        ${canWrite() ? `<button class="btn ghost small" data-edit="${a.id}">Edit</button>
-        <button class="btn danger small" data-del="${a.id}">Delete</button>` : ""}
-      </div></div>`;
-  }).join("");
-  renderCosts();
-}
-
-$("list").addEventListener("change", e => {
-  const t = e.target;
-  const s = t.getAttribute("data-sel"); if(s){ ui[s].sel = t.checked; render(); }
-  const g = t.getAttribute("data-frag"); if(g){ ui[g].fragile = t.checked; render(); }
-  const c = t.getAttribute("data-copies"); if(c){ ui[c].copies = Math.max(1,Math.min(20,parseInt(t.value,10)||1)); }
-});
-$("list").addEventListener("click", async e => {
-  const ed = e.target.getAttribute("data-edit"); if(ed){ startEdit(ed); return; }
-  const dl = e.target.getAttribute("data-del");
-  if(dl){
-    if(!confirm("Delete this address?")) return;
-    try{
-      if(online) await rest("tapal_addresses?id=eq." + dl, { method:"PATCH", headers:RETURN, body:JSON.stringify({archived:true}) });
-      addresses = addresses.filter(a => a.id !== dl);
-      if(!online) await local.set(snapshot());
-      render(); fillLogPicker(); say("Address deleted.");
-    }catch(e){ say("Delete failed: " + e.message); }
-  }
-});
-
-/* line ↔ structured fields: house \n street \n landmark */
-function splitLine(addr){
-  const l = String(addr || "").split("\n").map(x => x.trim()).filter(Boolean);
-  if(l.length <= 3) return [l[0] || "", l[1] || "", l[2] || ""];
-  return [l[0], l.slice(1, -1).join(", "), l[l.length - 1]];
-}
-function startEdit(id){
-  const a = addresses.find(x => x.id === id); editingId = id;
-  $("rLabel").value=a.label||""; $("rName").value=a.name||"";
-  const [code,num] = splitPhone(a.phone); $("rCode").value = code || "+91"; $("rPhone").value = num;
-  const [house, street, mark] = splitLine(a.addr);
-  $("rHouse").value=house; $("rStreet").value=street; $("rLandmark").value=mark;
-  $("rCity").value=a.city||""; $("rDist").value=a.district||""; $("rState").value=a.state||""; $("rPin").value=a.pin||"";
-  $("pinLookup").textContent="";
-  $("addForm").style.display="block"; $("rName").focus();
-}
-$("showAdd").onclick = () => {
-  editingId = null;
-  ["rLabel","rName","rPhone","rHouse","rStreet","rLandmark","rCity","rDist","rState","rPin"].forEach(i => $(i).value = "");
-  $("rCode").value = "+91"; $("pinLookup").textContent="";
-  $("addForm").style.display="block"; $("rName").focus();
-};
-$("cancelAddr").onclick = () => { $("addForm").style.display="none"; editingId=null; };
-
-/* PIN → city/district/state via India Post's free lookup (api.postalpincode.in).
-   No local pincode database needed; needs to be online, silent when not. */
-let pinTimer;
-async function pinLookup(pin, fill, note){
-  note("Looking up PIN " + pin + "…");
-  try{
-    const r = await fetch("https://api.postalpincode.in/pincode/" + pin);
-    const d = await r.json();
-    const po = d && d[0] && d[0].Status === "Success" ? d[0].PostOffice : null;
-    if(!po || !po.length){ note("PIN " + pin + " not found — fill the fields yourself."); return; }
-    fill(po[0]);
-    note("PIN " + pin + ": " + [po[0].District, po[0].State].filter(Boolean).join(", ") + ".");
-  }catch(e){ note("Couldn't reach the PIN lookup — fill the fields yourself."); }
-}
-$("rPin").addEventListener("input", () => {
-  const pin = $("rPin").value.replace(/\D/g,"");
-  clearTimeout(pinTimer);
-  if(pin.length !== 6){ $("pinLookup").textContent = ""; return; }
-  pinTimer = setTimeout(() => pinLookup(pin, p => {
-    if(!$("rDist").value)  $("rDist").value  = p.District || "";
-    if(!$("rCity").value)  $("rCity").value  = p.Block && p.Block !== "NA" ? p.Block : (p.District || "");
-    if(!$("rState").value) $("rState").value = p.State || "";
-  }, m => { $("pinLookup").textContent = m; }), 300);
-});
-$("sPin").addEventListener("input", () => {
-  const pin = $("sPin").value.replace(/\D/g,"");
-  clearTimeout(pinTimer);
-  if(pin.length !== 6 || ($("sCountry").value.trim() || "India") !== "India") return;
-  pinTimer = setTimeout(() => pinLookup(pin, p => {
-    if(!$("sCity").value)  $("sCity").value  = p.Block && p.Block !== "NA" ? p.Block : (p.District || "");
-    if(!$("sDist").value)  $("sDist").value  = p.District || "";
-    if(!$("sState").value) $("sState").value = p.State || "";
-  }, m => { $("senderStatus").textContent = m; }), 300);
-});
-
-$("saveAddr").onclick = async () => {
-  const name = $("rName").value.trim(), pin = $("rPin").value.replace(/\D/g,"");
-  if(!name){ say("Add a recipient name first."); return; }
-  if(pin.length !== 6){ say("PIN code must be 6 digits."); return; }
-  const rec = { label:$("rLabel").value.trim() || null, name, phone:joinPhone($("rCode").value, $("rPhone").value.trim()),
-    line:[$("rHouse").value.trim(), $("rStreet").value.trim(), $("rLandmark").value.trim()].filter(Boolean).join("\n"),
-    city:$("rCity").value.trim(), district:$("rDist").value.trim(), state:$("rState").value, pin };
-
-  if(online){
-    let row;
-    try{
-      const out = editingId
-        ? await rest("tapal_addresses?id=eq." + editingId, { method:"PATCH", headers:RETURN, body:JSON.stringify(rec) })
-        : await rest("tapal_addresses", { method:"POST", headers:RETURN, body:JSON.stringify(rec) });
-      row = { ...out[0], addr: out[0].line };
-    }catch(e){ say("Save failed: " + e.message); return; }
-    if(!(row.id in ui)) ui[row.id] = { sel:true, copies:1 };
-    addresses = editingId ? addresses.map(a => a.id===editingId?row:a) : [...addresses,row];
-    addresses.sort((x,y) => (x.name||"").localeCompare(y.name||""));
-  }else{
-    const id = editingId || "a"+Date.now();
-    const row = {...rec, id, addr:rec.line};
-    if(!(id in ui)) ui[id] = { sel:true, copies:1 };
-    addresses = editingId ? addresses.map(a => a.id===id?row:a) : [...addresses,row];
-    await local.set(snapshot());
-  }
-  editingId = null; $("addForm").style.display="none";
-  render(); fillLogPicker(); say("Saved.");
-};
-
-async function persistSender(){
-  const note = m => { $("senderStatus").textContent = m; };
-  const country = $("sCountry").value.trim() || "India";
-  const rec = { label:$("sLabel").value.trim(), name:$("sName").value.trim(),
-                phone:joinPhone($("sCode").value, $("sPhone").value.trim()),
-                addr:[$("sHouse").value.trim(), $("sStreet").value.trim(), $("sLandmark").value.trim()].filter(Boolean).join("\n"),
-                city:$("sCity").value.trim(), district:$("sDist").value.trim(), state:$("sState").value.trim(),
-                pin:$("sPin").value.trim(), country };
-  if(!rec.name){ note("Add a sender name first."); return; }
-  /* Only India gets the 6-digit rule — Japan, the US and the rest have their own formats. */
-  if(country === "India"){
-    rec.pin = rec.pin.replace(/\D/g, "");
-    if(rec.pin && rec.pin.length !== 6){ note("An Indian PIN code must be 6 digits."); return; }
-  }
-  const id = editingSenderId;
-  note("Saving…");
-  if(online){
-    try{
-      const body = JSON.stringify({ label:rec.label || null, name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, district:rec.district || null, state:rec.state || null, pin:rec.pin || null, country:rec.country });
-      if(id){
-        await rest("tapal_senders?id=eq." + id, { method:"PATCH", headers:RETURN, body });
-        senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
-      }else{
-        const out = await rest("tapal_senders", { method:"POST", headers:RETURN, body });
-        const r = out[0];
-        senders.push({ id:r.id, label:r.label || "", name:r.name, phone:r.phone, addr:r.line, city:r.city, district:r.district || "", state:r.state || "", pin:r.pin, country:r.country || "India" });
-        activeSenderId = r.id;
-      }
-      note(id ? "Sender updated." : "Sender saved.");
-    }catch(e){ note("Save failed: " + e.message); return; }
-  }else{
-    if(id) senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
-    else { const nid = "s" + Date.now(); senders.push({ id:nid, ...rec }); activeSenderId = nid; }
-    await local.set(snapshot());
-    note("Saved on this device only — not synced. " + (location.protocol === "file:"
-      ? "Opening the file directly blocks Supabase; serve it over http://localhost instead."
-      : "Check the connection badge at the top."));
-  }
-  try{ localStorage.setItem(AKEY, activeSenderId); }catch(_){}
-  editingSenderId = null;
-  $("senderForm").style.display = "none";
-  renderSenders();
-}
-$("saveSender").onclick = () => persistSender();
-
-async function deleteSender(id){
-  if(senders.length < 2) return;
-  const note = m => { $("senderStatus").textContent = m; };
-  if(!confirm("Delete this sender?")) return;
-  if(online){
-    try{ await rest("tapal_senders?id=eq." + id, { method:"DELETE" }); }
-    catch(e){ note("Delete failed: " + e.message); return; }
-  }
-  senders = senders.filter(s => s.id !== id);
-  delete sui[id];
-  if(activeSenderId === id) activeSenderId = senders[0] ? senders[0].id : null;
-  if(!online) await local.set(snapshot());
-  try{ if(activeSenderId) localStorage.setItem(AKEY, activeSenderId); }catch(_){}
-  renderSenders(); note("Sender deleted.");
-}
-$("selAll").onclick  = () => { addresses.forEach(a => ui[a.id].sel = true);  render(); };
-$("selNone").onclick = () => { addresses.forEach(a => ui[a.id].sel = false); render(); };
-/* Master fragile toggle — sets every address at once; rows stay individually editable. */
-$("optFragile").onchange = e => {
-  addresses.forEach(a => ui[a.id].fragile = e.target.checked);
-  senders.forEach(s => { if(sui[s.id]) sui[s.id].fragile = e.target.checked; });
-  render(); renderSenders();
-};
-
-/* ---------- shipment log ---------- */
-function fillLogPicker(){
-  const sel = $("lgTo"), cur = sel.value;
-  sel.innerHTML = '<option value="">Select</option>';
-  addresses.forEach(a => sel.add(new Option(a.label ? `${a.name} — ${a.label}` : a.name, a.id)));
-  sel.value = cur;
-}
-function renderLog(){
-  const b = $("logBody");
-  if(!shipments.length){ b.innerHTML = '<tr><td colspan="6" class="empty">Nothing logged yet.</td></tr>'; return; }
-  b.innerHTML = shipments.map(s => `<tr>
-    <td>${esc(s.booked_on||"")}</td>
-    <td>${esc(s.recipient||"")}</td>
-    <td>${esc(s.service||"")}</td>
-    <td class="cn">${esc(s.consignment_no||"—")}</td>
-    <td><span class="pill">${esc(s.status||"")}</span></td>
-    <td>${canWrite() ? `<button class="btn danger small" data-dellog="${s.id}">Remove</button>` : ""}</td></tr>`).join("");
-}
-$("logBody").addEventListener("click", async e => {
-  const id = e.target.getAttribute("data-dellog"); if(!id) return;
-  if(online) { try{ await rest("tapal_shipments?id=eq." + id, { method:"DELETE" }); }catch(e){ say("Delete failed: " + e.message); return; } }
-  shipments = shipments.filter(s => s.id !== id);
-  if(!online) await local.set(snapshot());
-  renderLog();
-});
-$("addLog").onclick = async () => {
-  const addr = addresses.find(a => a.id === $("lgTo").value);
-  const rec = {
-    address_id: online && addr ? addr.id : null,
-    recipient: addr ? addr.name : "",
-    contents: $("lgContents").value.trim(),
-    service: $("lgService").value,
-    consignment_no: $("lgCn").value.trim(),
-    booked_on: $("lgDate").value || null,
-    cost: $("lgCost").value ? Number($("lgCost").value) : null,
-    status: $("lgStatus").value
-  };
-  if(!rec.recipient){ say("Pick who it went to."); return; }
-  if(online){
-    try{
-      const out = await rest("tapal_shipments", { method:"POST", headers:RETURN, body:JSON.stringify(rec) });
-      shipments = [out[0], ...shipments];
-    }catch(e){ say("Log failed: " + e.message); return; }
-  }else{
-    shipments = [{...rec, id:"s"+Date.now()}, ...shipments];
-    await local.set(snapshot());
-  }
-  $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
-  renderLog(); say("Logged.");
-};
-
-/* ---------- cost estimate ---------- */
-/* Indicative retail counter rates, mid-2026, pre-GST: [first 500 g, each extra 500 g] per zone.
-   Grounded in published tariffs (Speed Post ~₹35–80 local / ₹130–140 >2000 km per kg; India Post
-   Parcel retail ₹36 + ₹16/500 g; private couriers ₹50–90 per 500 g) — estimates, not quotes. */
-const RATES = [
-  ["Speed Post",       {local:[30,10],  state:[60,30],  nat:[90,50]},   "1–4 days"],
-  ["Parcel (surface)", {local:[36,16],  state:[36,16],  nat:[36,16]},   "4–8 days"],
-  ["DTDC",             {local:[60,40],  state:[80,50],  nat:[110,60]},  "2–5 days"],
-  ["Delhivery",        {local:[55,40],  state:[75,50],  nat:[95,65]},   "2–5 days"],
-  ["Blue Dart (air)",  {local:[110,70], state:[160,100],nat:[260,150]}, "1–2 days"]
-];
-/* Speed Post EMS abroad: [first 250 g, each extra 250 g] */
-const EMS = { "Japan":[950,120], "United States":[1820,150], "United Kingdom":[1965,160],
-              "Singapore":[900,110], "Australia":[1400,140], "United Arab Emirates":[950,110] };
-const norm = s => String(s || "").trim().toLowerCase();
-function zoneFor(a){
-  const f = activeSender();
-  if(norm(a.country || "India") !== "india") return "intl";
-  if(norm(a.city)  && norm(a.city)  === norm(f.city))  return "local";
-  if(norm(a.state) && norm(a.state) === norm(f.state)) return "state";
-  return "nat";
-}
-const round5 = n => Math.round(n / 5) * 5;
-const money = n => "₹" + round5(n * 0.9) + "–" + round5(n * 1.25);
-function domesticEst(r, zone, w){
-  const [first, extra] = r[zone];
-  return (first + Math.max(0, Math.ceil((w - 0.5) / 0.5)) * extra) * 1.18;
-}
-function intlEst(country, w){
-  const r = EMS[country];
-  return r ? r[0] + (Math.max(1, Math.ceil(w / 0.25)) - 1) * r[1] : null;
-}
-function renderCosts(){
-  const out = $("costOut"); if(!out) return;
-  const f = activeSender(), chosen = recipients();
-  if(!activeSenderId || !chosen.length){
-    out.innerHTML = '<p class="empty">Pick a From address and tick at least one recipient above to compare courier costs.</p>'; return;
-  }
-  if(norm(f.country || "India") !== "india"){
-    out.innerHTML = '<p class="empty">Estimates cover parcels booked in India — your From address is in ' + esc(f.country) + '. Use the local post or courier calculator there.</p>'; return;
-  }
-  const w = Math.max(0.5, parseFloat($("estWeight").value) || 1);
-  const zones = chosen.map(zoneFor);
-  const zName = { local:"Local", state:"Within state", nat:"Rest of India", intl:"International" };
-  const best = chosen.map(() => Infinity);
-  const cells = RATES.map(([,r]) => chosen.map((a,i) => {
-    if(zones[i] === "intl") return null;
-    const c = domesticEst(r, zones[i], w);
-    if(c < best[i]) best[i] = c;
-    return c;
-  }));
-  const anyIntl = zones.includes("intl");
-  const emsCells = anyIntl ? chosen.map((a,i) => zones[i] === "intl" ? intlEst(a.country, w) : null) : null;
-  if(emsCells) emsCells.forEach((c,i) => { if(c != null && c < best[i]) best[i] = c; });
-  const head = "<tr><th>Service</th>" + chosen.map((a,i) =>
-    `<th>${esc(a.label || a.name)}<br><span style="font-weight:400">${zName[zones[i]]}</span></th>`).join("") + "</tr>";
-  let body = RATES.map(([name,,eta], ri) => `<tr><td>${esc(name)} <span class="eta">${eta}</span></td>` +
-    cells[ri].map((c,i) => c == null ? '<td class="na">—</td>'
-      : `<td class="${c === best[i] ? "best" : ""}">${money(c)}</td>`).join("") + "</tr>").join("");
-  if(anyIntl) body += '<tr><td>Speed Post EMS <span class="eta">4–9 days</span></td>' +
-    emsCells.map((c,i) => zones[i] !== "intl" ? '<td class="na">—</td>'
-      : c == null ? '<td class="na">ask at counter</td>'
-      : `<td class="${c === best[i] ? "best" : ""}">${money(c)}</td>`).join("") + "</tr>";
-  out.innerHTML = `<table class="log"><thead>${head}</thead><tbody>${body}</tbody></table>`;
-}
-$("estWeight").addEventListener("input", renderCosts);
-
-/* ---------- handling band ---------- */
-/* ISO 780-style broken-glass mark. Flat black line-art so it survives a cheap
-   laser printer; print-color-adjust keeps it from being dropped. */
-const GLASS_SVG = '<svg viewBox="0 0 48 60" aria-hidden="true">'
-  + '<path d="M9 6 H39 L26.5 31 H21.5 Z" fill="#000"/>'
-  + '<path d="M22.5 31 H25.5 V50 H22.5 Z" fill="#000"/>'
-  + '<path d="M13 56 H35 L30 50 H18 Z" fill="#000"/>'
-  + '<path d="M27 5 H40 L31.5 22 L28.5 13 L25.5 17 Z" fill="#fff"/>'
-  + '<path d="M20 8 L24 13 L20.5 17 L23.5 22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'
-  + '<path d="M40 7 L47 11 L39 14 Z" fill="#000"/>'
-  + '<path d="M42 19 L47.5 23 L41 25 Z" fill="#000"/></svg>';
-
-const CARE_NOTE  = "DO NOT DROP \u00b7 DO NOT STACK \u00b7 KEEP UPRIGHT \u00b7 \u0938\u093e\u0935\u0927\u093e\u0928\u0940 \u0938\u0947 \u0930\u0916\u0947\u0902";
-const CARE_MARKS = ["GLASS \u00b7 \u0915\u093e\u0901\u091a", "THIS SIDE UP \u2191", "KEEP DRY"];
-
-function bandHTML(text, inside){
-  if(!text) return "";
-  if(inside) return `<div class="band"><div><div class="bt">${esc(text)}</div></div></div>`;
-  return `<div class="band">${GLASS_SVG}<div>
-    <div class="bt">${esc(text)}</div>
-    <div class="bn">${esc(CARE_NOTE)}</div>
-    <div class="bm">${CARE_MARKS.map(m => `<span>${esc(m)}</span>`).join("")}</div>
-  </div></div>`;
-}
-
-/* ---------- labels ---------- */
-const pinBoxes = pin => `<div class="pinBoxes">${
-  String(pin||"").padEnd(6," ").slice(0,6).split("").map(d => `<span>${esc(d.trim())}</span>`).join("")}</div>`;
-
-/* Labels print the selected sender block. */
-function fromBlock(){
-  const s = activeSender();
-  return [s.name, s.addr, [s.city, s.district].filter(Boolean).join(", "),
-          [s.state, s.pin].filter(Boolean).join(" - "),
-          s.country && s.country !== "India" ? s.country.toUpperCase() : "", s.phone]
-    .filter(Boolean).join("\n") || "(no sender selected)";
-}
-/* One print state lookup for both lists — address book rows live in ui, your
-   own addresses used as recipients live in sui. */
-const prState = id => ui[id] || sui[id] || { sel:false, copies:1, fragile:false };
-/* Today's recipients: ticked address-book rows, plus any of your own addresses
-   ticked "Send here" (never the one you're sending from). */
-function recipients(){
-  const own = senders.filter(s => s.id !== activeSenderId && sui[s.id] && sui[s.id].sel);
-  return [...addresses.filter(a => ui[a.id] && ui[a.id].sel), ...own];
-}
-function labelHTML(a, inside){
-  const contents = $("contents").value.trim();
-  const abroad = a.country && a.country !== "India";
-  const addr = [a.addr, [a.city,a.district].filter(Boolean).join(", "), a.state,
-                abroad ? a.country.toUpperCase() : ""].filter(Boolean).join("\n");
-  const band = inside ? "IF UNDELIVERABLE — CONTENTS SLIP"
-    : (prState(a.id).fragile ? "FRAGILE — HANDLE WITH CARE" : "");
-  return `<div class="label"><div class="inner">
-    ${bandHTML(band, inside)}
-    <div class="toLbl">To</div>
-    <div class="toName">${esc(a.name)}</div>
-    <div class="toAddr">${esc(addr)}</div>
-    ${a.phone ? `<div class="phone">Ph: ${esc(a.phone)}</div>` : ""}
-    ${abroad
-      ? (a.pin ? `<div class="pinRow"><span class="pl">POST CODE</span><span class="toName" style="font-size:15px">${esc(a.pin)}</span></div>` : "")
-      : `<div class="pinRow"><span class="pl">PIN</span>${pinBoxes(a.pin)}</div>`}
-    <div class="foot"><div class="from"><div class="fromLbl">From</div>
-      <div class="fromTxt">${esc(fromBlock())}</div></div>
-      ${contents ? `<div class="contents">${esc(contents)}</div>` : ""}
-    </div></div></div>`;
-}
-function buildSheets(cls, items){
-  const per = cls === "one" ? 1 : cls === "two" ? 2 : 4;
-  let out = "";
-  for(let i=0; i<items.length; i+=per){
-    const chunk = items.slice(i, i+per);
-    while(chunk.length < per) chunk.push('<div class="label"></div>');
-    out += `<div class="sheet ${cls}">${chunk.join("")}</div>`;
-  }
-  return out;
-}
-function build(){
-  const chosen = recipients();
-  if(!activeSenderId){ say("Pick which address you're sending from."); return false; }
-  if(!chosen.length){ say("Tick at least one recipient — an address book row, or “Send here” on one of your own addresses."); return false; }
-  const size = $("size").value, main = [], slips = [];
-  chosen.forEach(a => {
-    for(let i=0; i<(prState(a.id).copies||1); i++) main.push(labelHTML(a,false));
-    if($("optInside").checked) slips.push(labelHTML(a,true));
-  });
-  /* One recipient, one copy — give it the whole sheet instead of a blank half. */
-  const cls = main.length === 1 ? "one" : size;
-  $("scalerInner").innerHTML = buildSheets(cls,main) + (slips.length ? buildSheets("four",slips) : "");
-  fit();
-  say(`${main.length} label${main.length>1?"s":""} ready${slips.length?`, plus ${slips.length} inside slip${slips.length>1?"s":""}`:""}.`);
-  return true;
-}
-function fit(){
-  const holder = $("scalerInner").parentNode;
-  const s = Math.min(1, holder.clientWidth / 794);   // 210mm ≈ 794px @96dpi
-  $("scalerInner").style.transform = `scale(${s})`;
-  $("scalerInner").style.height = ($("scalerInner").scrollHeight * s) + "px";
-}
-window.addEventListener("resize", () => { if(document.body.classList.contains("preview")) fit(); });
-
-$("previewBtn").onclick = () => {
-  if(!build()) return;
-  document.body.classList.add("preview");
-  $("hideBtn").style.display = "inline-block";
-  setTimeout(fit,30);
-  $("sheets").scrollIntoView({behavior:"smooth"});
-};
-$("hideBtn").onclick = () => {
-  document.body.classList.remove("preview");
-  $("hideBtn").style.display = "none";
-  window.scrollTo({top:0,behavior:"smooth"});
-};
-$("printBtn").onclick = () => { if(build()) setTimeout(() => window.print(), 60); };
-
-/* ---------- direct PDF download ---------- */
-/* Renders each A4 sheet to canvas and packs them into one PDF — no print dialog.
-   Libraries load lazily from CDN on first use; offline, the print path still works. */
-const loadScript = src => new Promise((ok, bad) => {
-  const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s);
-});
-$("pdfBtn").onclick = async () => {
-  if(!build()) return;
-  const wasPreview = document.body.classList.contains("preview");
-  document.body.classList.add("preview");
-  $("pdfBtn").disabled = true; say("Preparing PDF…");
-  const inner = $("scalerInner"), keep = inner.style.transform;
-  try{
-    if(!window.jspdf)       await loadScript("https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js");
-    if(!window.html2canvas) await loadScript("https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js");
-    inner.style.transform = "none";
-    const sheets = [...inner.querySelectorAll(".sheet")];
-    const pdf = new jspdf.jsPDF({ unit:"mm", format:"a4", compress:true });
-    for(let i = 0; i < sheets.length; i++){
-      const c = await html2canvas(sheets[i], { scale:2, backgroundColor:"#fff" });
-      if(i) pdf.addPage();
-      pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
-    }
-    pdf.save("parcel-labels-" + new Date().toISOString().slice(0,10) + ".pdf");
-    say("PDF saved to your downloads.");
-  }catch(e){
-    console.error(e);
-    say("Couldn't build the PDF" + (navigator.onLine ? "" : " — you're offline") + ". Use Print / Save as PDF instead.");
-  }
-  inner.style.transform = keep;
-  $("pdfBtn").disabled = false;
-  if(wasPreview) fit(); else document.body.classList.remove("preview");
-};
-
-boot();
-</script>
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/app.js"></script>
+<script src="js/labels.js"></script>
 </body>
 </html>

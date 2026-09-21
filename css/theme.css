@@ -1,0 +1,15 @@
+/* Design tokens + themes. Add a theme here, then list it in js/app.js. */
+
+  :root{
+    --ink:#15171c; --ink-soft:#5a616e; --paper:#fff; --rule:#c7ccd4; --wash:#eef1f5;
+    --post-red:#b3111c; --post-blue:#123a7a; --ok:#12653a; --warn:#8a5a00;
+    --sans:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  body[data-theme="night"]{--ink:#e8eaf0;--ink-soft:#99a2b4;--paper:#20242e;--rule:#3b4254;--wash:#14161c;--post-red:#ff6d76;--post-blue:#82a8ff;--ok:#5ecb8f;--warn:#e2ab41}
+  body[data-theme="kraft"]{--ink:#2c2114;--ink-soft:#6e5c44;--paper:#f8f1e2;--rule:#d3c3a3;--wash:#ece0c8;--post-red:#a33b1f;--post-blue:#3d5a80;--ok:#3f6b34;--warn:#8a5a00}
+  body[data-theme="contrast"]{--ink:#000;--ink-soft:#222;--paper:#fff;--rule:#000;--wash:#fff}
+  body[data-theme="indigo"]{--ink:#1b1f3b;--ink-soft:#5a6183;--paper:#fff;--rule:#c5c9e0;--wash:#eceefa;--post-red:#b3111c;--post-blue:#2a3f9c;--ok:#186a4a;--warn:#8a5a00}
+  body[data-theme="sakura"]{--ink:#3a2330;--ink-soft:#7a5c6a;--paper:#fffafc;--rule:#e8ccd6;--wash:#fbeef3;--post-red:#c0395c;--post-blue:#5a4f8a;--ok:#3f6b4f;--warn:#9a6a1a}
+  body[data-theme="forest"]{--ink:#13241c;--ink-soft:#4f6459;--paper:#fbfdf9;--rule:#c3d3c6;--wash:#e8f0e7;--post-red:#a7231f;--post-blue:#1f5560;--ok:#1c6b3f;--warn:#856200}
+  body[data-theme="slate"]{--ink:#e7e4dc;--ink-soft:#a29d92;--paper:#272620;--rule:#484538;--wash:#17160f;--post-red:#f2846a;--post-blue:#9bb6d8;--ok:#7cc194;--warn:#ddaa4e}

@@ -4,9 +4,18 @@ Printable address labels for Indian parcels, plus a shipment log. Single static
 HTML file, no build step, backed by Supabase.
 
 - Address book, saved once and reused
-- A4 label sheets — 2-up for cartons, 4-up for small boxes, and a full-page
-  label when printing for a single recipient
-- Boxed PIN digits in the format postal sorters read fastest
+- **Country-aware address forms** — pick the country first and the form
+  changes shape: India asks for PIN → flat/building → area → landmark → town
+  → district → state; Japan asks for 〒 postal code (3-4) → prefecture →
+  city/ward/town → chome-banchi-go → building + room; US/UK/Singapore/
+  Australia/UAE each get their own fields and postcode rule. Postal lookups
+  fill the rest for India (India Post) and Japan (zipcloud). Cards and labels
+  print each address in that country's line order
+- A4 label sheets — 2-up for cartons, 4-up for small boxes, 1-up extra large
+  for Yamato 140/160 and other big cartons (also used automatically when
+  printing for a single recipient)
+- Boxed PIN digits in the format postal sorters read fastest; a large 〒 /
+  POST CODE line for addresses abroad
 - Per-recipient FRAGILE band with a broken-glass mark, handling instructions
   and precaution tags (GLASS · काँच / THIS SIDE UP ↑ / KEEP DRY)
 - Optional duplicate slip for inside the box
@@ -42,6 +51,7 @@ supabase/migrations/
   20260727120000_multiple_senders.sql
   20260727130000_address_titles.sql
   20260727140000_sender_address_fields.sql
+  20260905100000_international_addresses.sql   country column + free-form postal codes on tapal_addresses
 Temp/                     local scratch — gitignored, never deployed
 ```
 
@@ -119,3 +129,71 @@ Fragile is per recipient: tick **Fragile** on an address row, or use the
 checkbox in Print options to set every row at once. The Hindi line on the band
 renders from system fonts; on the rare machine without a Devanagari font it
 prints as boxes — the English instructions still carry the meaning.
+
+
+## Phases
+
+Phase 1 — **Labels that print** *(done)*
+A4 sheets 2-up and 4-up, dashed cut lines, post-stripe edge, PIN boxes, contents line,
+FRAGILE handling band (ISO 780 broken-glass mark), duplicate slip for inside the box.
+
+Phase 2 — **Saved data + sync** *(done)*
+Supabase (PostgREST, no SDK) for senders, address book and shipment log, with a
+device-only localStorage fallback when offline.
+
+Phase 3 — **Sign-in and roles** *(done)*
+Full-screen sign-in gate: Continue with Google, or a one-time email link.
+Roles admin / operator / viewer — viewers browse and print but cannot edit.
+
+Phase 4 — **Multiple senders** *(done)*
+Several From addresses, pick which one today's parcels go from, or post a parcel
+between your own addresses (Japan to India).
+
+Phase 5 — **International addresses** *(done)*
+Country is the first field and rebuilds the form to that country's postal system
+(IN / JP / US / UK / SG / AU / AE). PIN and 〒 lookup auto-fill state or prefecture
+and city. Cards and labels print in that country's line order.
+
+Phase 6 — **Yamato 140 output** *(done)*
+Extra-large single label per A4 for Yamato 140 / 160 and other big cartons.
+
+Phase 7 — **Edit windows + themes** *(done)*
+Add and edit open in a centred overlay instead of pushing the page down.
+Eight themes: Post office, Night, Slate, Kraft paper, Indigo mail, Sakura, Forest,
+High contrast. Front end split into css/ and js/ for maintenance.
+
+### Still to build
+
+Phase 8 — **Customs paperwork**
+CN22 / CN23 forms with a contents-and-value table, printed alongside the label.
+The real gap for India↔Japan parcels.
+
+Phase 9 — **Barcode / QR on labels**
+Consignment number as a barcode, or a QR pointing at the shipment row.
+
+Phase 10 — **Kanji address printing**
+Japanese addresses printed in kanji as well as romaji.
+
+Phase 11 — **Address book housekeeping**
+CSV import and export; archive and restore deleted addresses.
+
+Phase 12 — **Tracking**
+Paste a consignment number and pull its status, instead of typing it in by hand.
+
+Phase 13 — **Cost estimate into the log**
+One click to push the chosen estimate into the shipment log row.
+
+## Layout
+
+    index.html            markup only
+    css/theme.css         tokens + the eight themes
+    css/app.css           app chrome, forms, entries, log, sign-in gate, edit windows
+    css/labels.css        A4 sheets, label geometry, handling band, @media print
+    js/config.js          Supabase config, auth, REST helper
+    js/countries.js       country address formats + form builder
+    js/app.js             themes, boot, senders, address book, log, cost estimate
+    js/labels.js          handling band, label sheets, print, PDF
+    run-tapal-local.bat   double-click to serve this folder on http://localhost:5173
+    supabase/migrations/  schema
+
+Scripts load in that order and share one global scope — keep the order if you add files.
