@@ -95,6 +95,7 @@ document.addEventListener("keydown", e => {
 
 /* ---------- boot ---------- */
 function showApp(v){
+  $("tabs").style.display = v ? "" : "none";
   $("appMain").style.display = v ? "" : "none";
   document.querySelector(".top").style.display = v ? "" : "none";
   $("authCard").style.display = v ? "none" : "";
@@ -105,6 +106,7 @@ function showApp(v){
 }
 
 async function boot(){
+  $("retryLoad").style.display = "none";
   const s = await ensureSession();
   if(!s){
     let reachable = true;
@@ -131,17 +133,33 @@ async function boot(){
       $("authStatus").textContent = "That email isn't on the access list. Ask an admin to add it, then sign in again.";
       return;
     }
-    setConn("live", "Synced — " + (session.email || "signed in") + " · " + role);
+
   }catch(e){
     if(e.status === 401 || e.status === 403){ doSignOut(true); return; }
     online = false;
     console.error("Supabase unreachable:", e);
     setConn("off", "Offline — " + String(e.message || e).slice(0,80));
   }
-  showApp(true);
-  applyRole();
-  await loadAll();
+  await loadParcelRecords();
 }
+
+async function loadParcelRecords(){
+  $("retryLoad").style.display = "none";
+  if(online) setConn("", "Loading senders, addresses and shipments…");
+  try{
+    await loadAll();
+  }catch(e){
+    if(e.status === 401 || e.status === 403){ await doSignOut(true); return; }
+    setConn("off", "Couldn’t load parcel records. Check your connection and retry.");
+    $("retryLoad").style.display = "";
+    return;
+  }
+  applyRole();
+  showApp(true);
+  if(online) setConn("live", "Synced — " + (session.email || "signed in") + " · " + role);
+}
+
+$("retryLoad").onclick = loadParcelRecords;
 
 /* Viewers can browse, select and print, but not change anything. */
 function applyRole(){
