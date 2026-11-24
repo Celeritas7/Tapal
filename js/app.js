@@ -36,6 +36,8 @@ renderThemes();
 /* ---------- tabs ---------- */
 function showTab(name){
   $("tabLabels").style.display   = name === "labels" ? "" : "none";
+  $("tabBook").style.display = name === "book" ? "" : "none";
+  $("tabHistory").style.display = name === "history" ? "" : "none";
   $("tabSettings").style.display = name === "settings" ? "" : "none";
   document.querySelectorAll("#tabs .tab").forEach(t => {
     const on = t.getAttribute("data-tab") === name;
@@ -241,42 +243,52 @@ async function loadAll(){
 }
 
 /* ---------- senders (From blocks) ---------- */
-function renderSenders(){
-  const el = $("senderList");
-  senders.forEach(s => { if(!(s.id in sui)) sui[s.id] = { sel:false, copies:1, fragile:false }; });
-  if(!senders.length){ el.innerHTML = '<p class="empty">No sender saved yet — add one below.</p>'; renderCosts(); return; }
-  el.innerHTML = senders.map(s => {
-    const isFrom = s.id === activeSenderId, u = sui[s.id];
-    return `<div class="entry ${isFrom ? "on" : ""} ${!isFrom && u.fragile ? "frag" : ""}">
-      <label class="pick"><input type="radio" name="senderPick" data-sender="${s.id}" ${isFrom ? "checked" : ""}>From</label>
-      <div class="body"><div class="who">${esc(s.label || s.name || "(unnamed)")}${
-        s.country && s.country !== "India" ? `<span class="flag">${esc(s.country)}</span>` : ""}</div>
-        <div class="addr">${esc(addrLines(s, { name:!!s.label, phone:true }).join("\n"))}</div></div>
-      <div class="acts">
-        <label class="pick"><input type="checkbox" data-srecv="${s.id}" ${u.sel ? "checked" : ""} ${isFrom ? "disabled" : ""}>Send here</label>
-        ${!isFrom && u.sel ? `<input class="copies" type="number" min="1" max="20" value="${u.copies}" data-scopies="${s.id}" aria-label="Copies">
-        <label class="pick"><input type="checkbox" data-sfrag="${s.id}" ${u.fragile ? "checked" : ""}>Fragile</label>` : ""}
-        ${canWrite() ? `<button class="btn ghost small" data-sedit="${s.id}">Edit</button>
-        ${senders.length > 1 ? `<button class="btn danger small" data-sdel="${s.id}">Delete</button>` : ""}` : ""}
-      </div></div>`;
+function bookEntries(rows, own){
+  if(!rows.length) return '<p class="empty">No addresses saved yet.</p>';
+  return rows.map(a => `<div class="entry"><div class="body"><div class="who">${esc(a.label || a.name)}</div>
+    <div class="addr">${esc(addrLines(a, {name:!!a.label, phone:true}).join("\n"))}</div></div>
+    ${canWrite() ? `<div class="acts"><button class="btn ghost small" data-${own?"sedit":"edit"}="${esc(a.id)}">Edit</button>
+    ${!own || rows.length > 1 ? `<button class="btn danger small" data-${own?"sdel":"del"}="${esc(a.id)}">Delete</button>` : ""}</div>` : ""}</div>`).join("");
+}
+function renderHome(){
+  const from = $("homeFrom");
+  from.replaceChildren(...senders.map(s => new Option(s.label || s.name, s.id)));
+  if(!senders.length) from.add(new Option("Add a sender in Address book", ""));
+  from.value = activeSenderId || "";
+  const choices = [...addresses, ...senders.filter(s => s.id !== activeSenderId)];
+  const selected = recipients();
+  $("toSummary").textContent = "To · " + (selected.length === 1 ? selected[0].label || selected[0].name : selected.length ? selected.length + " recipients" : "Choose recipients");
+  $("homeTo").innerHTML = choices.map(a => `<label class="opt"><input type="checkbox" data-own="${senders.includes(a)}" value="${esc(a.id)}" ${(senders.includes(a)?sui:ui)[a.id]?.sel?"checked":""}>${esc(a.label || a.name)} · ${esc(a.country || "India")}</label>`).join("") || "Add a destination in Address book.";
+  $("recipientOptions").innerHTML = selected.map(a => {
+    const own = senders.includes(a), state = (own?sui:ui)[a.id];
+    return `<div class="row" data-id="${esc(a.id)}" data-own="${own}"><strong>${esc(a.label || a.name)}</strong>
+      <label>Copies <input class="copies" type="number" min="1" max="20" value="${state.copies || 1}"></label>
+      <label><input type="checkbox" ${state.fragile?"checked":""}> Fragile</label></div>`;
   }).join("");
   renderCosts();
 }
-$("senderList").addEventListener("change", e => {
+function renderSenders(){
+  senders.forEach(s => { if(!sui[s.id]) sui[s.id] = {sel:false,copies:1,fragile:false}; });
+  $("senderList").innerHTML = bookEntries(senders,true);
+  renderHome();
+}
+$("homeFrom").onchange = e => {
+  activeSenderId = e.target.value;
+  sui[activeSenderId].sel = false;
+  try{localStorage.setItem(AKEY, activeSenderId);}catch(_){}
+  renderHome(); fillLogPicker();
+};
+$("homeTo").onchange = e => {
   const t = e.target;
-  const id = t.getAttribute("data-sender");
-  if(id){
-    activeSenderId = id;
-    if(sui[id]) sui[id].sel = false;          // can't post a parcel to itself
-    try{ localStorage.setItem(AKEY, id); }catch(_){}
-    renderSenders(); fillLogPicker(); $("senderStatus").textContent = "";
-    return;
-  }
-  const r = t.getAttribute("data-srecv"); if(r){ sui[r].sel = t.checked; renderSenders(); return; }
-  const g = t.getAttribute("data-sfrag"); if(g){ sui[g].fragile = t.checked; renderSenders(); return; }
-  const c = t.getAttribute("data-scopies");
-  if(c) sui[c].copies = Math.max(1, Math.min(20, parseInt(t.value,10) || 1));
-});
+  (t.dataset.own === "true" ? sui : ui)[t.value].sel = t.checked;
+  renderHome();
+};
+$("recipientOptions").onchange = e => {
+  const t = e.target, row = t.closest("[data-id]");
+  const state = (row.dataset.own === "true" ? sui : ui)[row.dataset.id];
+  if(t.type === "checkbox") state.fragile = t.checked;
+  else { state.copies = Math.max(1,Math.min(20,parseInt(t.value,10)||1)); t.value = state.copies; }
+};
 $("senderList").addEventListener("click", async e => {
   const ed = e.target.getAttribute("data-sedit");
   if(ed){ startSenderEdit(ed); return; }
@@ -308,31 +320,9 @@ function recipients(){
 
 /* ---------- address book ---------- */
 function render(){
-  const el = $("list");
-  if(!addresses.length){ el.innerHTML = '<p class="empty">No addresses saved yet.</p>'; renderCosts(); return; }
-  el.innerHTML = addresses.map(a => {
-    const u = ui[a.id] || {sel:true,copies:1,fragile:false};
-    return `<div class="entry ${u.sel?"on":""} ${u.fragile?"frag":""}">
-      <input type="checkbox" data-sel="${a.id}" ${u.sel?"checked":""} aria-label="Print for ${esc(a.name)}">
-      <div class="body"><div class="who">${esc(a.label || a.name)}${
-        a.country && a.country !== "India" ? `<span class="flag">${esc(a.country)}</span>` : ""}</div>
-        <div class="addr">${esc(addrLines(a, { name:!!a.label, phone:true }).join("\n"))}</div></div>
-      <div class="acts">
-        <input class="copies" type="number" min="1" max="20" value="${u.copies}" data-copies="${a.id}" aria-label="Copies">
-        <label class="pick"><input type="checkbox" data-frag="${a.id}" ${u.fragile?"checked":""}>Fragile</label>
-        ${canWrite() ? `<button class="btn ghost small" data-edit="${a.id}">Edit</button>
-        <button class="btn danger small" data-del="${a.id}">Delete</button>` : ""}
-      </div></div>`;
-  }).join("");
-  renderCosts();
+  $("list").innerHTML = bookEntries(addresses,false);
+  renderHome();
 }
-
-$("list").addEventListener("change", e => {
-  const t = e.target;
-  const s = t.getAttribute("data-sel"); if(s){ ui[s].sel = t.checked; render(); }
-  const g = t.getAttribute("data-frag"); if(g){ ui[g].fragile = t.checked; render(); }
-  const c = t.getAttribute("data-copies"); if(c){ ui[c].copies = Math.max(1,Math.min(20,parseInt(t.value,10)||1)); }
-});
 $("list").addEventListener("click", async e => {
   const ed = e.target.getAttribute("data-edit"); if(ed){ startEdit(ed); return; }
   const dl = e.target.getAttribute("data-del");
@@ -442,7 +432,7 @@ async function deleteSender(id){
   renderSenders(); fillLogPicker(); note("Sender deleted.");
 }
 $("selAll").onclick  = () => { addresses.forEach(a => ui[a.id].sel = true);  render(); };
-$("selNone").onclick = () => { addresses.forEach(a => ui[a.id].sel = false); render(); };
+$("selNone").onclick = () => { addresses.forEach(a => ui[a.id].sel = false); senders.forEach(s => sui[s.id].sel = false); render(); };
 /* Master fragile toggle — sets every address at once; rows stay individually editable. */
 $("optFragile").onchange = e => {
   addresses.forEach(a => ui[a.id].fragile = e.target.checked);
