@@ -21,7 +21,9 @@
       <div class="conn" id="conn"><span class="dot"></span><span id="connTxt" role="status">Connecting…</span></div>
     </div>
     <nav class="tabs" id="tabs" style="display:none" aria-label="Sections">
-      <button class="tab on" data-tab="labels" aria-selected="true">Labels</button>
+      <button class="tab on" data-tab="labels" aria-selected="true">Home</button>
+      <button class="tab" data-tab="book" aria-selected="false">Address book</button>
+      <button class="tab" data-tab="history" aria-selected="false">History</button>
       <button class="tab" data-tab="settings" aria-selected="false">Settings</button>
     </nav>
   </header>
@@ -64,26 +66,16 @@
   <div id="tabLabels">
 
   <section class="card">
-    <h2>From — your addresses</h2>
-    <p class="hint">Pick which address today's parcels are sent <strong>from</strong>. Tick <strong>Send here</strong> on another one to post a parcel between your own addresses — Japan to India, say.</p>
-    <div id="senderList"></div>
-    <div class="row"><button class="btn ghost" id="showSender">Add a sender</button></div>
-    <p class="status" id="roleNote" style="text-align:left"></p>
+    <label class="f" for="homeFrom">From</label><select id="homeFrom"></select>
+    <details><summary id="toSummary">To</summary>
+      <div id="homeTo"></div>
+      <div class="row"><button class="btn ghost small" id="selAll">Select address book</button><button class="btn ghost small" id="selNone">Clear selection</button></div>
+    </details>
+    <p id="roleNote" class="status"></p>
   </section>
-
   <section class="card">
-    <h2>Address book</h2>
-    <p class="hint">Tick who you're printing for today and set the number of copies.</p>
-    <div id="list"></div>
-    <div class="row">
-      <button class="btn ghost" id="showAdd">Add an address</button>
-      <button class="btn ghost small" id="selAll">Select all</button>
-      <button class="btn ghost small" id="selNone">Clear selection</button>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Print options</h2>
+    <details><summary>Label options</summary>
+    <div id="recipientOptions"></div>
     <div class="grid">
       <div><label class="f" for="size">Label size</label>
         <select id="size">
@@ -98,23 +90,30 @@
       <div class="opt"><input type="checkbox" id="optFragile"><label for="optFragile">Mark <strong>every</strong> label <strong>FRAGILE — HANDLE WITH CARE</strong> — or tick Fragile on single addresses above</label></div>
       <div class="opt"><input type="checkbox" id="optInside" checked><label for="optInside">Add a small duplicate slip for <strong>inside</strong> each box</label></div>
     </div>
-    <div class="row"><button class="btn ghost" id="previewBtn">Preview label</button></div>
-    <p class="status" id="status"></p>
+    </details>
+    <div class="row"><button class="btn" id="previewBtn">Preview label</button></div>
+
   </section>
 
   <section class="card" id="costCard">
-    <h2>Cost estimate</h2>
+    <details><summary>Cost estimate</summary>
     <p class="hint">Rough counter rates from your <strong>From</strong> address to each ticked recipient, incl. GST (mid-2026). Couriers bill the <strong>volumetric</strong> weight (L×B×H cm ÷ 5000) when it's higher than the scale weight — confirm on the courier's own calculator before booking.</p>
     <div class="grid">
       <div><label class="f" for="estWeight">Parcel weight (kg)</label><input type="number" id="estWeight" min="0.5" max="35" step="0.5" value="1"></div>
     </div>
-    <div class="wrapx" id="costOut" style="margin-top:12px"></div>
+    <div class="wrapx" id="costOut" style="margin-top:12px"></div></details>
   </section>
 
+  </div>
+  <div id="tabBook" style="display:none">
+    <section class="card"><h2>My addresses</h2><div id="senderList"></div><button class="btn ghost" id="showSender">Add a sender</button></section>
+    <section class="card"><h2>Recipients</h2><div id="list"></div><button class="btn ghost" id="showAdd">Add an address</button></section>
+  </div>
+  <div id="tabHistory" style="display:none">
   <section class="card">
-    <h2>Shipment log</h2>
+    <h2>Shipment history</h2>
     <p class="hint">Consignment numbers, so you're not digging through WhatsApp later.</p>
-    <div class="grid">
+    <details><summary>Record a sent parcel</summary><div class="grid">
       <div><label class="f" for="lgTo">Sent to</label><select id="lgTo"><option value="">Select</option></select></div>
       <div><label class="f" for="lgService">Service</label>
         <select id="lgService">
@@ -129,7 +128,7 @@
       <div><label class="f" for="lgStatus">Status</label>
         <select id="lgStatus"><option>packed</option><option>booked</option><option>in transit</option><option>delivered</option><option>problem</option></select></div>
     </div>
-    <div class="row"><button class="btn ghost" id="addLog">Add to log</button></div>
+    <div class="row"><button class="btn ghost" id="addLog">Add to log</button></div></details>
     <div class="wrapx"><table class="log"><thead><tr>
       <th>Date</th><th>To</th><th>Service</th><th>Consignment</th><th>Status</th><th></th>
     </tr></thead><tbody id="logBody"></tbody></table></div>
@@ -158,6 +157,7 @@
       <p class="hint" style="margin:0">Tapal — parcel labels, address book and shipment log. Data syncs through Supabase; when it can't reach the network the app keeps working on this device only.</p>
     </section>
   </div>
+  <p class="status" role="status" id="status"></p>
   </div>
 </div>
 
