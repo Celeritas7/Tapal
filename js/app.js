@@ -105,9 +105,23 @@ function showApp(v){
   $("acctEmail").textContent = session ? (session.email || "signed in") : "Not signed in";
 }
 
+let waitingForSession = false;
+function waitForSession(){
+  waitingForSession = true;
+  setConn("off", "Couldn’t verify your saved sign-in. Reconnect or tap Retry.");
+  $("retryLoad").style.display = "";
+}
+window.addEventListener("online", () => { if(waitingForSession) boot(); });
+
 async function boot(){
+  waitingForSession = false;
+  setConn("", "Checking sign-in…");
   $("retryLoad").style.display = "none";
-  const s = await ensureSession();
+  const hadSession = Boolean(session);
+  let s;
+  try{ s = await ensureSession(); }
+  catch(e){ waitForSession(); return; }
+  if(hadSession && !s){ await doSignOut(true); return; }
   if(!s){
     let reachable = true;
     try{ await fetch(AUTH + "health", { headers:{ apikey: SUPABASE_KEY } }); }catch(e){ reachable = false; }
@@ -135,6 +149,7 @@ async function boot(){
     }
 
   }catch(e){
+    if(e.sessionCheckFailed){ waitForSession(); return; }
     if(e.status === 401 || e.status === 403){ doSignOut(true); return; }
     online = false;
     console.error("Supabase unreachable:", e);
@@ -149,6 +164,7 @@ async function loadParcelRecords(){
   try{
     await loadAll();
   }catch(e){
+    if(e.sessionCheckFailed){ waitForSession(); return; }
     if(e.status === 401 || e.status === 403){ await doSignOut(true); return; }
     setConn("off", "Couldn’t load parcel records. Check your connection and retry.");
     $("retryLoad").style.display = "";
@@ -159,7 +175,7 @@ async function loadParcelRecords(){
   if(online) setConn("live", "Synced — " + (session.email || "signed in") + " · " + role);
 }
 
-$("retryLoad").onclick = loadParcelRecords;
+$("retryLoad").onclick = () => waitingForSession ? boot() : loadParcelRecords();
 
 /* Viewers can browse, select and print, but not change anything. */
 function applyRole(){
