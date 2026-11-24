@@ -38,7 +38,26 @@ async function authFetch(path, body, bearer){
   return txt ? JSON.parse(txt) : null;
 }
 
-async function ensureSession(){
+let pendingSessionCheck;
+function ensureSession(){
+  if(!pendingSessionCheck){
+    pendingSessionCheck = checkSession().finally(() => { pendingSessionCheck = null; });
+  }
+  return pendingSessionCheck;
+}
+
+function handleSessionError(e){
+  let code;
+  try{ code = JSON.parse(e.message).error_code; }catch(_){}
+  if(e.status === 401 || ["refresh_token_not_found", "refresh_token_already_used", "session_not_found", "session_expired", "user_not_found"].includes(code)){
+    saveSession(null);
+    return null;
+  }
+  e.sessionCheckFailed = true;
+  throw e;
+}
+
+async function checkSession(){
   if(!session) return null;
   if(Math.floor(Date.now()/1000) > (session.expires_at || 0) - 60){
     try{
@@ -47,11 +66,11 @@ async function ensureSession(){
                     expires_at: Math.floor(Date.now()/1000) + (j.expires_in || 3600),
                     user_id: (j.user && j.user.id) || session.user_id,
                     email: (j.user && j.user.email) || session.email });
-    }catch(e){ saveSession(null); return null; }
+    }catch(e){ return handleSessionError(e); }
   }
   if(!session.user_id){
     try{ const u = await authFetch("user", undefined, true); saveSession({ ...session, user_id: u.id, email: u.email }); }
-    catch(e){ saveSession(null); return null; }
+    catch(e){ return handleSessionError(e); }
   }
   return session;
 }
@@ -65,7 +84,7 @@ function restHeaders(){
 }
 async function rest(path, opts = {}, retried){
   /* Tokens die after ~1h; a tab left open needs a refresh before each call. */
-  if(session) await ensureSession();
+  if(session && !(await ensureSession())) throw Object.assign(new Error("Session expired"), {status:401});
   const res  = await fetch(REST + path, { ...opts, headers: { ...restHeaders(), ...(opts.headers || {}) } });
   const body = await res.text();
   if(!res.ok){
