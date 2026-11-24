@@ -269,7 +269,7 @@ $("senderList").addEventListener("change", e => {
     activeSenderId = id;
     if(sui[id]) sui[id].sel = false;          // can't post a parcel to itself
     try{ localStorage.setItem(AKEY, id); }catch(_){}
-    renderSenders(); $("senderStatus").textContent = "";
+    renderSenders(); fillLogPicker(); $("senderStatus").textContent = "";
     return;
   }
   const r = t.getAttribute("data-srecv"); if(r){ sui[r].sel = t.checked; renderSenders(); return; }
@@ -422,7 +422,7 @@ async function persistSender(){
   try{ localStorage.setItem(AKEY, activeSenderId); }catch(_){}
   editingSenderId = null;
   closeModal("senderModal");
-  renderSenders();
+  renderSenders(); fillLogPicker();
 }
 $("saveSender").onclick = () => persistSender();
 
@@ -439,7 +439,7 @@ async function deleteSender(id){
   if(activeSenderId === id) activeSenderId = senders[0] ? senders[0].id : null;
   if(!online) await local.set(snapshot());
   try{ if(activeSenderId) localStorage.setItem(AKEY, activeSenderId); }catch(_){}
-  renderSenders(); note("Sender deleted.");
+  renderSenders(); fillLogPicker(); note("Sender deleted.");
 }
 $("selAll").onclick  = () => { addresses.forEach(a => ui[a.id].sel = true);  render(); };
 $("selNone").onclick = () => { addresses.forEach(a => ui[a.id].sel = false); render(); };
@@ -455,7 +455,19 @@ function fillLogPicker(){
   const sel = $("lgTo"), cur = sel.value;
   sel.innerHTML = '<option value="">Select</option>';
   addresses.forEach(a => sel.add(new Option(a.label ? `${a.name} — ${a.label}` : a.name, a.id)));
-  sel.value = cur;
+  for(const s of senders){
+    if(s.id !== activeSenderId) sel.add(new Option("My address — " + senderDestinationName(s), "sender:" + s.id));
+  }
+  sel.value = Array.from(sel.options).some(option => option.value === cur) ? cur : "";
+}
+function senderDestinationName(s){
+  return [s.name, s.label || s.city, s.country].filter(Boolean).join(" — ");
+}
+function printedDestination(){
+  const chosen = recipients();
+  if(chosen.length !== 1) return "";
+  const dest = chosen[0];
+  return senders.includes(dest) ? "sender:" + dest.id : dest.id;
 }
 function renderLog(){
   const b = $("logBody");
@@ -476,10 +488,12 @@ $("logBody").addEventListener("click", async e => {
   renderLog();
 });
 $("addLog").onclick = async () => {
-  const addr = addresses.find(a => a.id === $("lgTo").value);
+  const selected = $("lgTo").value;
+  const addr = addresses.find(a => a.id === selected);
+  const own = senders.find(s => s.id !== activeSenderId && "sender:" + s.id === selected);
   const rec = {
     address_id: online && addr ? addr.id : null,
-    recipient: addr ? addr.name : "",
+    recipient: own ? senderDestinationName(own) : (addr ? addr.name : ""),
     contents: $("lgContents").value.trim(),
     service: $("lgService").value,
     consignment_no: $("lgCn").value.trim(),
