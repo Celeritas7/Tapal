@@ -18,9 +18,9 @@
     <div class="brand">
       <img class="mark" src="assets/logo.svg" alt="" width="38" height="38">
       <div class="brandTx"><h1>Tapal</h1><p>Save an address once. Print from any device, or save as PDF from your phone.</p></div>
-      <div class="conn" id="conn"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
+      <div class="conn" id="conn"><span class="dot"></span><span id="connTxt" role="status">Connecting…</span></div>
     </div>
-    <nav class="tabs" id="tabs" aria-label="Sections">
+    <nav class="tabs" id="tabs" style="display:none" aria-label="Sections">
       <button class="tab on" data-tab="labels" aria-selected="true">Labels</button>
       <button class="tab" data-tab="settings" aria-selected="false">Settings</button>
     </nav>
@@ -59,7 +59,8 @@
     </div>
   </div>
 
-  <div id="appMain">
+  <button class="btn ghost" type="button" id="retryLoad" style="display:none">Retry</button>
+  <div id="appMain" style="display:none">
   <div id="tabLabels">
 
   <section class="card">
@@ -173,7 +174,7 @@
 
 <div id="sheets"><div class="scaler"><div class="scalerInner" id="scalerInner"></div></div></div>
 
-<div class="bar">
+<div class="bar" style="display:none">
   <button class="btn ghost" id="hideBtn" style="display:none">Back to editing</button>
   <button class="btn ghost" id="pdfBtn">Download PDF</button>
   <button class="btn" id="printBtn">Print / Save as PDF</button>
