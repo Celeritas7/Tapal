@@ -1,7 +1,16 @@
 /* Printed output: A4 sheets, label geometry, handling band, @media print. */
   #sheets{display:none;background:var(--wash)}
-  body.preview .app{padding-bottom:20px}
-  body.preview #sheets{display:block;padding:0 0 90px}
+  #previewHeading{display:none}
+  @media screen{
+    body.preview{overflow:hidden}
+    body.preview .app{display:none}
+    body.preview #sheets{position:fixed;inset:0;display:block;overflow:auto;padding:0 8px calc(80px + env(safe-area-inset-bottom))}
+    #previewHeading{display:block;position:sticky;top:0;z-index:1;padding:10px;background:var(--paper);color:var(--ink);text-align:center}
+    body.preview .scaler{overflow:hidden;max-width:210mm;margin:auto;padding:0}
+    body.preview .scalerInner{width:210mm;display:flow-root}
+    body.preview .bar{padding:8px 8px calc(8px + env(safe-area-inset-bottom));gap:6px}
+    body.preview .bar .btn{flex:1;min-width:0;max-width:12em;padding:10px 4px;min-height:44px}
+  }
   .scaler{overflow-x:auto;padding:14px 0}
   .scalerInner{transform-origin:top left}
 
@@ -77,7 +86,7 @@
     body{background:#fff}
     .app,.bar,.modal,#authCard{display:none !important}
     #sheets{display:block !important;padding:0}
-    .scaler{overflow:visible;padding:0}
+    .scaler{overflow:visible;padding:0;height:auto !important}
     .scalerInner{transform:none !important}
     .sheet{border:0;margin:0;box-shadow:none;page-break-after:always;break-after:page}
     .sheet:last-child{page-break-after:auto;break-after:auto}

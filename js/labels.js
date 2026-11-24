@@ -86,24 +86,39 @@ function build(){
   return true;
 }
 function fit(){
-  const holder = $("scalerInner").parentNode;
-  const s = Math.min(1, holder.clientWidth / 794);   // 210mm ≈ 794px @96dpi
-  $("scalerInner").style.transform = `scale(${s})`;
-  $("scalerInner").style.height = ($("scalerInner").scrollHeight * s) + "px";
+  const inner = $("scalerInner"), holder = inner.parentNode;
+  if(!holder.clientWidth || !inner.offsetWidth) return;
+  const scale = Math.min(1, holder.clientWidth / inner.offsetWidth);
+  inner.style.transform = `scale(${scale})`;
+  holder.style.height = Math.ceil(inner.offsetHeight * scale) + "px";
+  updatePageNumber();
 }
+function updatePageNumber(){
+  const pages = $("scalerInner").children;
+  const top = $("previewHeading").getBoundingClientRect().bottom;
+  let page = 0;
+  while(page + 1 < pages.length && pages[page].getBoundingClientRect().bottom <= top) page++;
+  $("pageNumber").textContent = (page + 1) + " of " + pages.length;
+}
+$("sheets").addEventListener("scroll", updatePageNumber);
 window.addEventListener("resize", () => { if(document.body.classList.contains("preview")) fit(); });
 
+let editorScroll = 0;
 $("previewBtn").onclick = () => {
   if(!build()) return;
+  editorScroll = window.scrollY;
   document.body.classList.add("preview");
   $("hideBtn").style.display = "inline-block";
-  setTimeout(fit,30);
-  $("sheets").scrollIntoView({behavior:"smooth"});
+  $("sheets").scrollTop = 0;
+  $("previewMessage").textContent = "";
+  fit();
+  $("hideBtn").focus({preventScroll:true});
 };
 $("hideBtn").onclick = () => {
   document.body.classList.remove("preview");
   $("hideBtn").style.display = "none";
-  window.scrollTo({top:0,behavior:"smooth"});
+  $("previewBtn").focus({preventScroll:true});
+  window.scrollTo(0, editorScroll);
 };
 $("printBtn").onclick = () => { if(build()){ $("lgTo").value = printedDestination(); setTimeout(() => window.print(), 60); } };
 
@@ -118,6 +133,9 @@ $("pdfBtn").onclick = async () => {
   const destination = printedDestination();
   const wasPreview = document.body.classList.contains("preview");
   document.body.classList.add("preview");
+  fit();
+  $("hideBtn").disabled = true;
+  $("printBtn").disabled = true;
   $("pdfBtn").disabled = true; say("Preparing PDF…");
   const inner = $("scalerInner"), keep = inner.style.transform;
   try{
@@ -127,7 +145,7 @@ $("pdfBtn").onclick = async () => {
     const sheets = [...inner.querySelectorAll(".sheet")];
     const pdf = new jspdf.jsPDF({ unit:"mm", format:"a4", compress:true });
     for(let i = 0; i < sheets.length; i++){
-      const c = await html2canvas(sheets[i], { scale:2, backgroundColor:"#fff" });
+      const c = await html2canvas(sheets[i], { scale:2, backgroundColor:"#fff", onclone: doc => { doc.querySelector(".scaler").style.overflow = "visible"; doc.getElementById("sheets").style.overflow = "visible"; } });
       if(i) pdf.addPage();
       pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
     }
@@ -139,7 +157,10 @@ $("pdfBtn").onclick = async () => {
     say("Couldn't build the PDF" + (navigator.onLine ? "" : " — you're offline") + ". Use Print / Save as PDF instead.");
   }
   inner.style.transform = keep;
+  $("hideBtn").disabled = false;
+  $("printBtn").disabled = false;
   $("pdfBtn").disabled = false;
+  if(wasPreview) $("previewMessage").textContent = $("status").textContent;
   if(wasPreview) fit(); else document.body.classList.remove("preview");
 };
 
