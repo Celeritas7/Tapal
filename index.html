@@ -98,7 +98,7 @@
       <div class="opt"><input type="checkbox" id="optFragile"><label for="optFragile">Mark <strong>every</strong> label <strong>FRAGILE — HANDLE WITH CARE</strong> — or tick Fragile on single addresses above</label></div>
       <div class="opt"><input type="checkbox" id="optInside" checked><label for="optInside">Add a small duplicate slip for <strong>inside</strong> each box</label></div>
     </div>
-    <div class="row"><button class="btn ghost" id="previewBtn">Show preview</button></div>
+    <div class="row"><button class="btn ghost" id="previewBtn">Preview label</button></div>
     <p class="status" id="status"></p>
   </section>
 
@@ -172,12 +172,12 @@
   <div class="mfoot"><button class="btn ghost" id="cancelAddr">Cancel</button><button class="btn" id="saveAddr">Save address</button></div>
 </div></div>
 
-<div id="sheets"><div class="scaler"><div class="scalerInner" id="scalerInner"></div></div></div>
+<div id="sheets"><header id="previewHeading">Label preview · <span id="pageNumber"></span> <span id="previewMessage" role="status"></span></header><div class="scaler"><div class="scalerInner" id="scalerInner"></div></div></div>
 
 <div class="bar" style="display:none">
-  <button class="btn ghost" id="hideBtn" style="display:none">Back to editing</button>
-  <button class="btn ghost" id="pdfBtn">Download PDF</button>
-  <button class="btn" id="printBtn">Print / Save as PDF</button>
+  <button class="btn ghost" id="hideBtn" style="display:none">Back</button>
+  <button class="btn ghost" id="pdfBtn" title="Download PDF">PDF</button>
+  <button class="btn" id="printBtn" title="Print or save as PDF">Print</button>
 </div>
 
 <script src="js/config.js"></script>
