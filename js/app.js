@@ -441,12 +441,49 @@ $("optFragile").onchange = e => {
 };
 
 /* ---------- shipment log ---------- */
+let preparedParcels = [];
+let recordingPrepared = false;
+function rememberPreparedParcels(){
+  preparedParcels = recipients().map(dest => ({
+    key: senders.includes(dest) ? "sender:" + dest.id : dest.id,
+    contents: $("contents").value
+  }));
+  $("recordPrepared").style.display = canWrite() && preparedParcels.length ? "" : "none";
+}
+$("recordPrepared").onclick = () => {
+  if(!canWrite() || !preparedParcels.length) return;
+  recordingPrepared = true;
+  fillLogPicker();
+  $("lgTo").value = preparedParcels.length === 1 ? preparedParcels[0].key : "";
+  $("lgCn").value = ""; $("lgCost").value = "";
+  $("lgContents").value = preparedParcels[0].contents;
+  $("lgStatus").value = "booked";
+  showTab("history");
+  $("shipmentEntry").open = true;
+  $("lgTo").focus();
+};
+function closeShipmentEntry(){
+  recordingPrepared = false;
+  $("shipmentEntry").open = false;
+  fillLogPicker();
+  $("lgTo").value = "";
+}
+$("cancelShipment").onclick = closeShipmentEntry;
+$("shipmentEntry").addEventListener("toggle", () => {
+  if(!$("shipmentEntry").open && recordingPrepared) closeShipmentEntry();
+});
 function fillLogPicker(){
   const sel = $("lgTo"), cur = sel.value;
   sel.innerHTML = '<option value="">Select</option>';
   addresses.forEach(a => sel.add(new Option(a.label ? `${a.name} — ${a.label}` : a.name, a.id)));
   for(const s of senders){
-    if(s.id !== activeSenderId) sel.add(new Option("My address — " + senderDestinationName(s), "sender:" + s.id));
+    if(s.id !== activeSenderId || (recordingPrepared && preparedParcels.some(p => p.key === "sender:" + s.id))) sel.add(new Option("My address — " + senderDestinationName(s), "sender:" + s.id));
+  }
+  if(recordingPrepared){
+    const allowed = new Set(preparedParcels.map(parcel => parcel.key));
+    for(const option of Array.from(sel.options)){
+      if(option.value && !allowed.has(option.value)) option.remove();
+    }
   }
   sel.value = Array.from(sel.options).some(option => option.value === cur) ? cur : "";
 }
@@ -478,9 +515,10 @@ $("logBody").addEventListener("click", async e => {
   renderLog();
 });
 $("addLog").onclick = async () => {
+  if(!canWrite() || $("addLog").disabled) return;
   const selected = $("lgTo").value;
   const addr = addresses.find(a => a.id === selected);
-  const own = senders.find(s => s.id !== activeSenderId && "sender:" + s.id === selected);
+  const own = senders.find(s => "sender:" + s.id === selected);
   const rec = {
     address_id: online && addr ? addr.id : null,
     recipient: own ? senderDestinationName(own) : (addr ? addr.name : ""),
@@ -492,17 +530,24 @@ $("addLog").onclick = async () => {
     status: $("lgStatus").value
   };
   if(!rec.recipient){ say("Pick who it went to."); return; }
-  if(online){
-    try{
-      const out = await rest("tapal_shipments", { method:"POST", headers:RETURN, body:JSON.stringify(rec) });
-      shipments = [out[0], ...shipments];
-    }catch(e){ say("Log failed: " + e.message); return; }
-  }else{
-    shipments = [{...rec, id:"s"+Date.now()}, ...shipments];
-    await local.set(snapshot());
-  }
-  $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
-  renderLog(); say("Logged.");
+  $("addLog").disabled = true;
+  try{
+    if(online){
+        const out = await rest("tapal_shipments", { method:"POST", headers:RETURN, body:JSON.stringify(rec) });
+        shipments = [out[0], ...shipments];
+    }else{
+      shipments = [{...rec, id:"s"+Date.now()}, ...shipments];
+      await local.set(snapshot());
+    }
+    $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
+    if(recordingPrepared){
+      preparedParcels = preparedParcels.filter(parcel => parcel.key !== selected);
+      if(!preparedParcels.length) $("recordPrepared").style.display = "none";
+    }
+    closeShipmentEntry();
+    renderLog(); say("Shipment recorded.");
+  }catch(e){ say("Log failed: " + e.message); }
+  finally{ $("addLog").disabled = !canWrite(); }
 };
 
 /* ---------- cost estimate ---------- */
