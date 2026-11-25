@@ -172,10 +172,10 @@ For one India–Japan destination, Home offers an optional itemized worksheet wi
 Phase 9 — **Consignment barcode labels** *(implemented)*
 After booking, open History and choose **Barcode label** beside a saved consignment number. Preview, print or download the separate Code 128 reference sticker. It encodes the exact saved number and supports up to 48 printable ASCII characters.
 
-### Still to build
+Phase 10 — **Bilingual Japanese address labels** *(implemented)*
+For a Japanese sender or recipient, enter the address in Japanese and optionally add its romaji spelling. The label prints both with one postal code. Apply `20261126010000_tapal_address_romaji.sql` before saving romaji to the cloud.
 
-Phase 10 — **Kanji address printing**
-Japanese addresses printed in kanji as well as romaji.
+### Still to build
 
 Phase 11 — **Address book housekeeping**
 CSV import and export; archive and restore deleted addresses.
