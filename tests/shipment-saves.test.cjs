@@ -431,3 +431,41 @@ test("booking a packed cloud row recovers after a lost acknowledgment", async ()
   assert.equal(app.run("shipments[0].status"),"booked");
   assert.equal(app.element("missingCount").textContent,"· 1 missing");
 });
+
+test("Retry restores online History atomically and keeps device parcels after a failed retry", async () => {
+  const data = storage();
+  data.setItem("parcel-label-data",JSON.stringify({shipments:[{id:"local",recipient:"Device parcel"}]}));
+  const app = openApp({online:false,localStorage:data});
+  const original = data.getItem("parcel-label-data");
+  app.env.document.querySelector = selector => selector.includes(".modal.open") ? null : app.element(selector);
+  app.run("ensureSession = async () => session");
+  let fail = "settings", probes = 0;
+  app.env.rest = async path => {
+    if(path.startsWith("tapal_settings")){
+      probes++;
+      if(fail === "settings") throw Error("offline");
+    }
+    if(path.startsWith("rpc/")) return "operator";
+    if(path.startsWith("tapal_shipments")){
+      if(fail === "history") throw Error("busy");
+      return [{id:"cloud",recipient:"Cloud parcel"}];
+    }
+    return [];
+  };
+  app.element("shipmentEntry").open = false;
+  await app.run("boot()");
+  assert.equal(app.element("retryLoad").style.display,"");
+  assert.equal(app.run("shipments[0].id"),"local");
+  fail = "history";
+  await app.element("retryLoad").onclick();
+  assert.equal(app.run("online"),false);
+  assert.equal(app.run("shipments[0].id"),"local");
+  fail = "";
+  await Promise.all([app.element("retryLoad").onclick(),app.element("retryLoad").onclick()]);
+  assert.equal(probes,3);
+  assert.equal(app.element("retryLoad").style.display,"none");
+  assert.equal(app.run("online"),true);
+  assert.equal(app.run("shipments[0].id"),"cloud");
+  assert.match(app.element("deviceHistoryRows").markup,/Device parcel/);
+  assert.equal(data.getItem("parcel-label-data"),original);
+});

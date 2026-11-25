@@ -131,14 +131,16 @@ function withDeviceLock(change){
   });
 }
 
+let pendingDeviceWrites = 0;
 function saveDeviceRows(key, change){
+  pendingDeviceWrites++;
   return withDeviceLock(async () => {
     const data = await local.get() || {};
     const rows = key === "senders" ? deviceSenders(data) : data[key] || [];
     const next = change(rows);
     await local.write({...data, [key]:next});
     return next;
-  });
+  }).finally(() => { pendingDeviceWrites--; });
 }
 
 function deviceId(){ return crypto.randomUUID?.() || Array.from(crypto.getRandomValues(new Uint32Array(4))).join("-"); }
@@ -204,9 +206,36 @@ function waitForSession(){
   setConn("off", "Couldn’t verify your saved sign-in. Reconnect or tap Retry.");
   $("retryLoad").style.display = "";
 }
-window.addEventListener("online", () => { if(waitingForSession) boot(); });
+window.addEventListener("online", () => { if(waitingForSession && !showingDevice) boot(); });
 
-async function boot(){
+let loadingConnection = null;
+let showingDevice = false;
+function boot(){
+  if(!loadingConnection){
+    $("appMain").inert = true;
+    $("tabs").inert = true;
+    document.querySelector(".bar").inert = true;
+    loadingConnection = connect().finally(() => {
+      $("appMain").inert = false;
+      $("tabs").inert = false;
+      document.querySelector(".bar").inert = false;
+      loadingConnection = null;
+    });
+  }
+  return loadingConnection;
+}
+async function showDeviceRecords(){
+  online = false;
+  setConn("off", "Device only · Tap Retry to reconnect.");
+  if(!showingDevice){
+    try{ await loadAll(); showingDevice = true; }
+    catch(e){ say("Could not read device records: " + e.message); }
+  }
+  applyRole();
+  showApp(true);
+  $("retryLoad").style.display = "";
+}
+async function connect(){
   waitingForSession = false;
   setConn("", "Checking sign-in…");
   $("retryLoad").style.display = "none";
@@ -217,23 +246,17 @@ async function boot(){
   if(hadSession && !s){ await doSignOut(true); return; }
   if(!s){
     let reachable = true;
-    try{ await fetch(AUTH + "health", { headers:{ apikey: SUPABASE_KEY } }); }catch(e){ reachable = false; }
+    try{ reachable = (await fetch(AUTH + "health", { headers:{ apikey: SUPABASE_KEY } })).ok; }catch(e){ reachable = false; }
     if(reachable){
       setConn("off", "Signed out");
       showApp(false);
     }else{
-      online = false;
-      setConn("off", location.protocol === "file:"
-        ? "Offline — open via http://localhost, not the file itself"
-        : "Offline — device only, nothing is syncing");
-      showApp(true);
-      try{ await loadAll(); }catch(e){ say("Could not read device records: " + e.message); }
+      await showDeviceRecords();
     }
     return;
   }
   try{
     await rest("tapal_settings?select=id&limit=1");
-    online = true;
     role = await rest("rpc/tapal_my_role", { method:"POST", body:"{}" });
     if(!role){
       await doSignOut(false);
@@ -243,23 +266,22 @@ async function boot(){
 
   }catch(e){
     if(e.sessionCheckFailed){ waitForSession(); return; }
-    if(e.status === 401 || e.status === 403){ doSignOut(true); return; }
-    online = false;
-    console.error("Supabase unreachable:", e);
-    setConn("off", "Offline — " + String(e.message || e).slice(0,80));
+    if(e.status === 401 || e.status === 403){ await doSignOut(true); return; }
+    await showDeviceRecords();
+    return;
   }
   await loadParcelRecords();
 }
 
 async function loadParcelRecords(){
   $("retryLoad").style.display = "none";
-  if(online) setConn("", "Loading senders, addresses and shipments…");
+  setConn("", "Loading senders, addresses and shipments…");
   try{
-    await loadAll();
+    await loadAll(true);
   }catch(e){
     if(e.sessionCheckFailed){ waitForSession(); return; }
     if(e.status === 401 || e.status === 403){ await doSignOut(true); return; }
-    setConn("off", "Couldn’t load parcel records. Check your connection and retry.");
+    setConn("off", showingDevice ? "Device only · Online History could not load. Tap Retry." : "Couldn’t load parcel records. Check your connection and retry.");
     $("retryLoad").style.display = "";
     return;
   }
@@ -269,7 +291,13 @@ async function loadParcelRecords(){
   if(online) setConn("live", "Synced — " + (session.email || "signed in") + " · " + role);
 }
 
-$("retryLoad").onclick = () => waitingForSession ? boot() : loadParcelRecords();
+$("retryLoad").onclick = () => {
+  if(showingDevice && ($("shipmentEntry").open || pendingDeviceWrites || document.querySelector(".modal.open, #logBody details[open]"))){
+    say("Finish or cancel your device entry before reconnecting.");
+    return;
+  }
+  return boot();
+};
 
 /* Viewers can browse, select and print, but not change anything. */
 function applyRole(){
@@ -301,6 +329,9 @@ $("googleLogin").onclick = () => {
 
 async function doSignOut(expired){
   try{ if(session) await authFetch("logout", {}, true); }catch(e){}
+  showingDevice = false;
+  $("deviceHistory").hidden = true;
+  $("deviceHistoryRows").textContent = "";
   setPendingShipment(null);
   saveSession(null);
   role = null;
@@ -323,13 +354,28 @@ async function loadShipmentHistory(){
     if(page.length < limit) return rows;
   }
 }
-async function loadAll(){
-  if(online){
+async function loadAll(fromServer = online){
+  if(fromServer){
     const [s,a,l] = await Promise.all([
       rest("tapal_senders?user_id=eq." + session.user_id + "&select=*&order=created_at"),
       rest("tapal_addresses?archived=eq.false&select=*&order=name"),
       loadShipmentHistory()
     ]);
+    if(showingDevice){
+      const panel = $("deviceHistory");
+      $("deviceHistoryRows").innerHTML = shipments.map(row =>
+        `<li>${[row.booked_on,row.recipient,row.service,row.status,row.consignment_no,shipmentCostText(row),row.contents].filter(Boolean).map(esc).join(" · ")}</li>`).join("");
+      panel.hidden = !shipments.length;
+      panel.open = false;
+      preparedParcels = []; preparedLabel = null; batchId = null;
+      updateRecordAction();
+      closeShipmentEntry();
+      $("contents").value = "";
+      for(const id of Object.keys(ui)) delete ui[id];
+      sui = {};
+      showingDevice = false;
+    }
+    online = true;
     senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, district:x.district || "", state:x.state || "", pin:x.pin, country:x.country || "India", label:x.label || "" }));
     addresses = (a || []).map(x => ({...x, addr:x.line}));
     shipments = l || [];
