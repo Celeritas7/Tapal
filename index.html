@@ -113,7 +113,11 @@
   </div>
   <div id="tabBook" style="display:none">
     <section class="card"><h2>My addresses</h2><div id="senderList"></div><button class="btn ghost" id="showSender">Add a sender</button></section>
-    <section class="card"><h2>Recipients</h2><div id="list"></div><button class="btn ghost" id="showAdd">Add an address</button></section>
+    <section class="card"><h2>Recipients</h2><div id="list"></div><button class="btn ghost" id="showAdd">Add an address</button>
+      <button class="btn ghost" id="exportAddresses">Export active recipients as CSV</button>
+      <label>Import recipients from Tapal CSV <input id="importAddresses" type="file" accept=".csv,text/csv"></label>
+      <p id="bookStatus" role="status"></p>
+      <details><summary>Archived recipients</summary><div id="archivedList"></div></details></section>
   </div>
   <div id="tabHistory" style="display:none">
   <section class="card">
@@ -188,6 +192,7 @@
 <script src="js/config.js"></script>
 <script src="js/countries.js"></script>
 <script src="js/customs.js"></script>
+<script src="js/address-book.js"></script>
 <script src="js/app.js"></script>
 <script src="js/labels.js"></script>
 </body>

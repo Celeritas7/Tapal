@@ -302,7 +302,7 @@ $("retryLoad").onclick = () => {
 /* Viewers can browse, select and print, but not change anything. */
 function applyRole(){
   const ro = !canWrite();
-  ["showSender","saveSender","showAdd","saveAddr","addLog"].forEach(i => { $(i).disabled = ro; });
+  ["showSender","saveSender","showAdd","saveAddr","addLog","importAddresses"].forEach(i => { $(i).disabled = ro; });
   $("acctRole").textContent = role || "—";
   if(ro){
     $("roleNote").textContent = "Read only — your role is viewer.";
@@ -337,7 +337,7 @@ async function doSignOut(expired){
   role = null;
   preparedParcels = []; preparedLabel = null; autoFilledDestination = null; recordingPrepared = false;
   updateRecordAction();
-  senders = []; activeSenderId = null; addresses = []; shipments = [];
+  senders = []; activeSenderId = null; setBookRows([]); $("archivedList").textContent = ""; $("bookStatus").textContent = ""; shipments = [];
   showTab("labels");
   showApp(false);
   setConn("off", "Signed out");
@@ -358,7 +358,7 @@ async function loadAll(fromServer = online){
   if(fromServer){
     const [s,a,l] = await Promise.all([
       rest("tapal_senders?user_id=eq." + session.user_id + "&select=*&order=created_at"),
-      rest("tapal_addresses?archived=eq.false&select=*&order=name"),
+      loadBookRows(),
       loadShipmentHistory()
     ]);
     if(showingDevice){
@@ -377,14 +377,14 @@ async function loadAll(fromServer = online){
     }
     online = true;
     senders = (s || []).map(x => ({ id:x.id, address_romaji:x.address_romaji, name:x.name, phone:x.phone, addr:x.line, city:x.city, district:x.district || "", state:x.state || "", pin:x.pin, country:x.country || "India", label:x.label || "" }));
-    addresses = (a || []).map(x => ({...x, addr:x.line}));
+    setBookRows((a || []).map(x => ({...x, addr:x.line})));
     shipments = l || [];
   }else{
     const d = await local.get() || {};
     /* old single-sender snapshots migrate into a one-item list */
     senders = deviceSenders(d);
     activeSenderId = d.activeSenderId || null;
-    addresses = d.addresses || []; shipments = d.shipments || [];
+    setBookRows(d.addresses || []); shipments = d.shipments || [];
   }
   try{ activeSenderId = localStorage.getItem(AKEY) || activeSenderId; }catch(e){}
   if(!senders.some(x => x.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
@@ -398,7 +398,7 @@ function bookEntries(rows, own){
   return rows.map(a => `<div class="entry"><div class="body"><div class="who">${esc(a.label || a.name)}</div>
     <div class="addr">${esc(addrLines(a, {name:!!a.label, phone:true}).join("\n"))}</div></div>
     ${canWrite() ? `<div class="acts"><button class="btn ghost small" data-${own?"sedit":"edit"}="${esc(a.id)}">Edit</button>
-    ${!own || rows.length > 1 ? `<button class="btn danger small" data-${own?"sdel":"del"}="${esc(a.id)}">Delete</button>` : ""}</div>` : ""}</div>`).join("");
+    ${!own || rows.length > 1 ? `<button class="btn danger small" data-${own?"sdel":"del"}="${esc(a.id)}">${own ? "Delete" : "Archive"}</button>` : ""}</div>` : ""}</div>`).join("");
 }
 function renderHome(){
   const from = $("homeFrom");
@@ -474,19 +474,14 @@ function recipients(){
 /* ---------- address book ---------- */
 function render(){
   $("list").innerHTML = bookEntries(addresses,false);
+  renderArchived();
   renderHome();
 }
 $("list").addEventListener("click", async e => {
   const ed = e.target.getAttribute("data-edit"); if(ed){ startEdit(ed); return; }
   const dl = e.target.getAttribute("data-del");
   if(dl){
-    if(!confirm("Delete this address?")) return;
-    try{
-      if(online) await rest("tapal_addresses?id=eq." + dl, { method:"PATCH", headers:RETURN, body:JSON.stringify({archived:true}) });
-      addresses = online ? addresses.filter(a => a.id !== dl)
-        : await saveDeviceRows("addresses", rows => rows.filter(a => a.id !== dl));
-      render(); fillLogPicker(); say("Address deleted.");
-    }catch(e){ say("Delete failed: " + e.message); }
+    if(canWrite() && confirm("Archive this recipient? You can restore it from Archived recipients.")) await changeArchive(dl, true);
   }
 });
 
@@ -521,7 +516,7 @@ async function persistAddress(){
     addresses.sort((x,y) => (x.name||"").localeCompare(y.name||""));
   }else{
     const id = editingId || deviceId();
-    try{ addresses = await saveDeviceAddress("addresses", {...rec, id, addr:rec.line}, !!editingId); }
+    try{ setBookRows(await saveDeviceAddress("addresses", {...rec, id, addr:rec.line}, !!editingId)); }
     catch(e){ $("rNote").textContent = "Save failed: " + e.message; return; }
   }
   closeAddrModal();

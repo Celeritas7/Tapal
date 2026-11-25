@@ -175,10 +175,10 @@ After booking, open History and choose **Barcode label** beside a saved consignm
 Phase 10 — **Bilingual Japanese address labels** *(implemented)*
 For a Japanese sender or recipient, enter the address in Japanese and optionally add its romaji spelling. The label prints both with one postal code. Apply `20261126010000_tapal_address_romaji.sql` before saving romaji to the cloud.
 
-### Still to build
+Phase 11 — **Address book housekeeping** *(implemented)*
+In Address book, export active recipients as CSV or import a file with the same headings. Exact duplicates, including archived matches, are skipped. Archive a recipient to remove it from parcel selection, then use Archived recipients to restore it. Device copies stay on that device.
 
-Phase 11 — **Address book housekeeping**
-CSV import and export; archive and restore deleted addresses.
+### Still to build
 
 Phase 12 — **Tracking**
 Paste a consignment number and pull its status, instead of typing it in by hand.
