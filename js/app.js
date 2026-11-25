@@ -376,7 +376,7 @@ async function loadAll(fromServer = online){
       showingDevice = false;
     }
     online = true;
-    senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, district:x.district || "", state:x.state || "", pin:x.pin, country:x.country || "India", label:x.label || "" }));
+    senders = (s || []).map(x => ({ id:x.id, address_romaji:x.address_romaji, name:x.name, phone:x.phone, addr:x.line, city:x.city, district:x.district || "", state:x.state || "", pin:x.pin, country:x.country || "India", label:x.label || "" }));
     addresses = (a || []).map(x => ({...x, addr:x.line}));
     shipments = l || [];
   }else{
@@ -506,7 +506,7 @@ async function persistAddress(){
   const v = readForm("r");
   if(!v.name){ say("Add a recipient name first."); return; }
   const perr = postalError(v); if(perr){ say(perr); return; }
-  const rec = toRec(v);
+  const rec = toRec(v, addresses.find(a => a.id === editingId));
 
   if(online){
     let row;
@@ -534,20 +534,20 @@ async function persistSender(){
   if(!v.name){ note("Add a sender name first."); return; }
   /* Each country validates its own postal format (a sender's is optional even in India). */
   if(v.pin){ const perr = postalError(v); if(perr){ note(perr); return; } }
-  const r0 = toRec(v);
-  const rec = { label:r0.label || "", name:r0.name, phone:r0.phone, addr:r0.line, city:r0.city, district:r0.district || "", state:r0.state || "", pin:r0.pin || "", country:r0.country };
+  const r0 = toRec(v, senders.find(s => s.id === editingSenderId));
+  const rec = { address_romaji:r0.address_romaji, label:r0.label || "", name:r0.name, phone:r0.phone, addr:r0.line, city:r0.city, district:r0.district || "", state:r0.state || "", pin:r0.pin || "", country:r0.country };
   const id = editingSenderId;
   note("Saving…");
   if(online){
     try{
-      const body = JSON.stringify({ label:rec.label || null, name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, district:rec.district || null, state:rec.state || null, pin:rec.pin || null, country:rec.country });
+      const body = JSON.stringify({ address_romaji:rec.address_romaji, label:rec.label || null, name:rec.name, phone:rec.phone, line:rec.addr, city:rec.city, district:rec.district || null, state:rec.state || null, pin:rec.pin || null, country:rec.country });
       if(id){
         await rest("tapal_senders?id=eq." + id, { method:"PATCH", headers:RETURN, body });
         senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
       }else{
         const out = await rest("tapal_senders", { method:"POST", headers:RETURN, body });
         const r = out[0];
-        senders.push({ id:r.id, label:r.label || "", name:r.name, phone:r.phone, addr:r.line, city:r.city, district:r.district || "", state:r.state || "", pin:r.pin, country:r.country || "India" });
+        senders.push({ id:r.id, address_romaji:r.address_romaji, label:r.label || "", name:r.name, phone:r.phone, addr:r.line, city:r.city, district:r.district || "", state:r.state || "", pin:r.pin, country:r.country || "India" });
         activeSenderId = r.id;
       }
       note(id ? "Sender updated." : "Sender saved.");

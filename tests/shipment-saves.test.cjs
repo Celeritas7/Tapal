@@ -494,3 +494,12 @@ test("History offers a barcode only for an encodable saved tracking number", asy
   // Start B (104), 'A' (33), checksum (34), stop (106).
   assert.equal(app.run('consignmentBars("A")'),"211214"+"111323"+"131123"+"2331112");
 });
+
+test("Japanese address labels preserve both scripts and allow clearing romaji", async () => {
+  const app = await labelApp();
+  const lines = app.run(`addrLines({country:"Japan", state:"Saitama-ken", city:"上尾市",
+    pin:"362-0001", address_romaji:"Ageo-shi, Saitama-ken"}, {country:true})`);
+  assert.deepEqual(Array.from(lines), ["〒 362-0001", "埼玉県, 上尾市", "Ageo-shi, Saitama-ken", "JAPAN"]);
+  assert.equal(app.run('toRec({country:"Japan", romaji:""}, {address_romaji:"Ageo"}).address_romaji'), null);
+  assert.equal(app.run('Object.hasOwn(toRec({country:"India"}), "address_romaji")'), false);
+});
