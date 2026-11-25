@@ -336,3 +336,26 @@ test("retry retains the submitted currency, date and carrier even on a different
   await retry.confirm();
   assert.equal(retry.run("shipments[0].cost_currency"),"JPY");
 });
+
+test("preview counter follows the visible sheet and reaches the last slip on a tall phone", async () => {
+  const app = await labelApp();
+  const scroller = app.element("sheets");
+  Object.assign(scroller, {scrollTop:0, clientHeight:800, scrollHeight:1600});
+  app.element("previewHeading").getBoundingClientRect = () => ({bottom:42});
+  app.element(".bar").getBoundingClientRect = () => ({top:739});
+  app.element("scalerInner").children = [528, 1021, 1514].map(bottom => ({
+    getBoundingClientRect:() => ({bottom:bottom - scroller.scrollTop})
+  }));
+  for(const [scrollTop, expected] of [[0,1], [80,1], [250,2], [799.5,3], [250,2], [0,1]]){
+    scroller.scrollTop = scrollTop;
+    scroller.scroll();
+    assert.equal(app.element("pageNumber").textContent, expected + " of 3");
+  }
+  // Two sheets can nearly fit together in a very tall viewport.
+  scroller.clientHeight = 1000;
+  scroller.scrollHeight = 1108;
+  app.element("scalerInner").children.pop();
+  scroller.scrollTop = 108;
+  scroller.scroll();
+  assert.equal(app.element("pageNumber").textContent, "2 of 2");
+});
