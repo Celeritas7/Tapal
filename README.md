@@ -169,10 +169,10 @@ High contrast. Front end split into css/ and js/ for maintenance.
 Phase 8 — **Customs paperwork** *(worksheet and carrier handoff implemented)*
 For one India–Japan destination, Home offers an optional itemized worksheet with quantities, unit prices and declared totals. Preview, download or print it after the address sheets. Worksheet entries belong to the current parcel and editor session. Japan Post generates official declarations through International Mail My Page. India Post provides its own CN22/CN23 form service. Tapal links to the sender’s carrier for completion.
 
-### Still to build
+Phase 9 — **Consignment barcode labels** *(implemented)*
+After booking, open History and choose **Barcode label** beside a saved consignment number. Preview, print or download the separate Code 128 reference sticker. It encodes the exact saved number and supports up to 48 printable ASCII characters.
 
-Phase 9 — **Barcode / QR on labels**
-Consignment number as a barcode, or a QR pointing at the shipment row.
+### Still to build
 
 Phase 10 — **Kanji address printing**
 Japanese addresses printed in kanji as well as romaji.
