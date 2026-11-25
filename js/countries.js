@@ -58,7 +58,10 @@ const fmtOf = c => FORMATS[c] || FORMATS.Other;
 function addrLines(a, o = {}){
   const [l1, l2, l3] = splitLine(a.addr || a.line);
   const c = a.country || "India";
-  const L = fmtOf(c).lines({ ...a, l1, l2, l3 }).filter(Boolean);
+  const romaji = c === "Japan" && a.address_romaji;
+  const pref = romaji && JP_PREFS.find(([latin]) => latin === a.state);
+  const L = fmtOf(c).lines({ ...a, state:pref ? pref[1] : a.state, l1, l2, l3 }).filter(Boolean);
+  if(romaji) L.push(romaji);
   if(o.name && a.name) L.unshift(a.name);
   if(o.country) L.push(c.toUpperCase());
   if(o.phone && a.phone) L.push("Ph: " + a.phone);
@@ -89,6 +92,10 @@ function buildForm(p, country, v = {}){
     }
     h += f.pair ? `<div class="pair">${fld(f.k, f.label, ctl(f))}${fld(f.pair.k, f.pair.label, ctl(f.pair))}</div>` : fld(f.k, f.label, ctl(f), f.hint);
   });
+  if(country === "Japan"){
+    h += fld("romaji", "Address in romaji (optional)", inp("romaji", {ph:"1-2-3 Nakamachi, Ageo-shi, Saitama-ken"}),
+      "Enter the Japanese address above and its Latin spelling here. Both print on the label. Enter the postal code only once, above.");
+  }
   h += fld("label", "Address title (optional)", inp("label", { ph: p === "s" ? "e.g. Tokyo flat · Madurai home" : "e.g. Meena — office" }), "Short name shown in your list");
   $(p + "Form").innerHTML = h;
   $(id("country")).onchange = () => { const cur = readForm(p); cur.code = fmtOf(cur.country).dial || cur.code; buildForm(p, cur.country, cur); };
@@ -100,7 +107,7 @@ function readForm(p){
   if(P.split){ const b = g("pin2"); pin = (pin || b) ? pin.replace(/\D/g, "") + "-" + b.replace(/\D/g, "") : ""; }
   else if(P.numeric) pin = pin.replace(/\D/g, "");
   if(P.upper) pin = pin.toUpperCase().replace(/\s+/g, " ");
-  return { country, label:g("label"), name:g("name"), code:g("code"), phone:g("phone"), pin,
+  return { country, romaji:g("romaji"), label:g("label"), name:g("name"), code:g("code"), phone:g("phone"), pin,
            l1:g("l1"), l2:g("l2"), l3:g("l3"), city:g("city"), district:g("district"), state:g("state") };
 }
 function postalError(v){
@@ -111,8 +118,11 @@ function postalError(v){
 }
 /* Form values ↔ stored record */
 const recVals = a => { const [code, phone] = splitPhone(a.phone), [l1, l2, l3] = splitLine(a.addr || a.line);
-  return { label:a.label, name:a.name, code, phone, l1, l2, l3, city:a.city, district:a.district, state:a.state, pin:a.pin }; };
-const toRec = v => ({ label:v.label || null, name:v.name, phone:joinPhone(v.code, v.phone),
+  return { romaji:a.address_romaji, label:a.label, name:a.name, code, phone, l1, l2, l3, city:a.city, district:a.district, state:a.state, pin:a.pin }; };
+const toRec = (v, previous) => ({
+  ...((v.country === "Japan" && v.romaji) || previous?.address_romaji
+    ? {address_romaji:v.country === "Japan" && v.romaji || null} : {}),
+  label:v.label || null, name:v.name, phone:joinPhone(v.code, v.phone),
   line:[v.l1, v.l2, v.l3].join("\n").replace(/\n+$/, ""), city:v.city, district:v.district || null, state:v.state || null, pin:v.pin || null, country:v.country });
 
 /* Postal-code lookups: India Post (api.postalpincode.in) and Japan Post via zipcloud.
