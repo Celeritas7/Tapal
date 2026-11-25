@@ -80,6 +80,10 @@ Project `wylxvmkcrexwfpjpbhyy` (**General_apps**, ap-south-1). Tables:
 
 Config lives at the top of the `<script>` block in `index.html`.
 
+### Shipment cost currency
+
+Before deploying the client with JPY and INR postage entry, run the [shipment cost currency migration](supabase/migrations/20261125120000_shipment_cost_currency.sql) in the **General_apps** SQL Editor. It adds the nullable `cost_currency` column to `public.tapal_shipments`. Previous clients can continue saving shipments. History displays older costs with “currency unrecorded” until a currency is known.
+
 ### Enabling auth (one-time dashboard setup)
 
 1. Apply `20260727100000_add_user_auth.sql`, then
