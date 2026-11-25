@@ -1019,7 +1019,44 @@ function intlEst(country, w){
   const r = EMS[country];
   return r ? r[0] + (Math.max(1, Math.ceil(w / 0.25)) - 1) * r[1] : null;
 }
+const estimateServices = {"Parcel (surface)":"India Post Parcel (surface)", "Blue Dart (air)":"Blue Dart"};
+let estimateOptions = [];
+function estimateCell(amount, destination, name, best){
+  const cost = round5(amount);
+  const index = estimateOptions.push({
+    key:senders.includes(destination) ? "sender:" + destination.id : destination.id,
+    service:estimateServices[name] || name, cost
+  }) - 1;
+  const action = canWrite() ? `<br><button type="button" class="btn ghost small" data-estimate="${index}">Use ₹${cost} estimate</button>` : "";
+  return `<td class="${amount === best ? "best" : ""}">${money(amount)}${action}</td>`;
+}
+$("costOut").addEventListener("click", event => {
+  const index = event.target.dataset.estimate;
+  const option = index === undefined ? null : estimateOptions[index];
+  if(!option || !canWrite()) return;
+  if(pendingShipment || $("addLog").disabled || $("shipmentEntry").open || $("lgCost").value || $("lgCn").value || $("lgContents").value){
+    showTab("history"); $("shipmentEntry").open = true;
+    say("Finish or cancel the current shipment before choosing an estimate."); return;
+  }
+  invalidateChangedLabel();
+  const parcel = preparedParcels.find(p => p.key === option.key);
+  recordingPrepared = !!parcel;
+  autoFilledDestination = null;
+  startBooking();
+  fillLogPicker();
+  $("lgTo").value = option.key;
+  const service = $("lgService");
+  if(!Array.from(service.options).some(item => item.value === option.service)) service.add(new Option(option.service,option.service));
+  service.value = option.service;
+  $("lgCurrency").value = "INR";
+  $("lgCost").value = String(option.cost);
+  $("lgContents").value = parcel?.contents ?? $("contents").value;
+  showTab("history"); $("shipmentEntry").open = true;
+  say("Estimate copied. Confirm the postage paid before saving.");
+  $("lgCost").focus();
+});
 function renderCosts(){
+  estimateOptions = [];
   const out = $("costOut"); if(!out) return;
   const f = activeSender(), chosen = recipients();
   if(!activeSenderId || !chosen.length){
@@ -1045,11 +1082,11 @@ function renderCosts(){
     `<th>${esc(a.label || a.name)}<br><span style="font-weight:400">${zName[zones[i]]}</span></th>`).join("") + "</tr>";
   let body = RATES.map(([name,,eta], ri) => `<tr><td>${esc(name)} <span class="eta">${eta}</span></td>` +
     cells[ri].map((c,i) => c == null ? '<td class="na">—</td>'
-      : `<td class="${c === best[i] ? "best" : ""}">${money(c)}</td>`).join("") + "</tr>").join("");
+      : estimateCell(c, chosen[i], name, best[i])).join("") + "</tr>").join("");
   if(anyIntl) body += '<tr><td>Speed Post EMS <span class="eta">4–9 days</span></td>' +
     emsCells.map((c,i) => zones[i] !== "intl" ? '<td class="na">—</td>'
       : c == null ? '<td class="na">ask at counter</td>'
-      : `<td class="${c === best[i] ? "best" : ""}">${money(c)}</td>`).join("") + "</tr>";
+      : estimateCell(c, chosen[i], "Speed Post EMS", best[i])).join("") + "</tr>";
   out.innerHTML = `<table class="log"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 $("estWeight").addEventListener("input", renderCosts);

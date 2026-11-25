@@ -526,3 +526,22 @@ test("archived device recipients survive reload and restore under the same ID", 
   assert.equal(app.run('addresses.filter(a => a.id === "a").length'), 1);
   assert.equal(app.run('archivedRecipients.length'), 0);
 });
+
+test("estimate selection opens the chosen recipient's editable INR shipment", async () => {
+  const app = await labelApp();
+  app.run('closeShipmentEntry(); activeSenderId = "i"; ui.a = {sel:true}; sui.j = {sel:true}; renderCosts()');
+  const click = index => app.element("costOut").click({target:{dataset:{estimate:String(index)}}});
+  const ems = app.run('estimateOptions.findIndex(x => x.service === "Speed Post EMS" && x.key === "sender:j")');
+  assert.ok(ems >= 0);
+  click(ems);
+  assert.equal(app.element("lgTo").value,"sender:j");
+  assert.equal(app.element("lgService").value,"Speed Post EMS");
+  assert.equal(app.element("lgCurrency").value,"INR");
+  assert.equal(app.element("lgCost").value,"1310");
+  app.element("lgCost").value = "1299";
+  click(0);
+  assert.equal(app.element("lgCost").value,"1299");
+  await app.element("addLog").onclick();
+  assert.equal(app.run("shipments[0].cost"),1299);
+  assert.equal(app.run("shipments[0].service"),"Speed Post EMS");
+});
