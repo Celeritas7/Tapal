@@ -247,3 +247,92 @@ test("changing the sender or contents also clears a print-prefilled destination"
   assert.equal(app.element("recordPrepared").style.display,"none");
   assert.equal(app.element("lgTo").value,"");
 });
+
+test("booking date uses the local calendar and refreshes when the next form opens", async () => {
+  const app = await labelApp();
+  app.run(`Date = class extends Date {
+    constructor(){ super(2026, 0, 1, 7); }
+  }`);
+  app.element("shipmentEntry").open = true;
+  app.element("shipmentEntry").toggle();
+  assert.equal(app.element("lgDate").value,"2026-01-01");
+  app.element("cancelShipment").onclick();
+  app.run(`Date = class extends globalThis.Date {
+    constructor(){ super(); this.setDate(2); }
+  }`);
+  pick(app,"a",true);
+  app.element("previewBtn").onclick();
+  app.element("recordPrepared").onclick();
+  assert.equal(app.element("lgDate").value,"2026-01-02");
+});
+
+test("Japan and India postage keeps its service, currency and amount after device reload", async () => {
+  const app = await labelApp();
+  const history = app.element("shipmentEntry");
+  history.open = true;
+  history.toggle();
+  assert.equal(app.element("lgService").value,"Japan Post");
+  assert.ok(app.element("lgService").options.some(o => o.value === "Yamato Transport"));
+  assert.equal(app.element("lgCurrency").value,"JPY");
+  app.element("lgTo").value = "a";
+  app.element("lgService").value = "Yamato Transport";
+  app.element("lgCost").value = "1250";
+  await app.confirm();
+
+  app.element("homeFrom").onchange({target:{value:"i"}});
+  pick(app,"b",true);
+  app.element("previewBtn").onclick();
+  app.element("recordPrepared").onclick();
+  assert.equal(app.element("lgService").value,"Speed Post");
+  assert.equal(app.element("lgCurrency").value,"INR");
+  app.element("lgCost").value = "75.50";
+  await app.confirm();
+  await app.run("loadAll()");
+  const rows = JSON.parse(app.run("JSON.stringify(shipments)"));
+  assert.deepEqual(rows.map(s => [s.service,s.cost_currency,s.cost]), [
+    ["Speed Post","INR",75.5],["Yamato Transport","JPY",1250]
+  ]);
+  assert.match(app.element("logBody").markup,/JPY 1250/);
+  assert.match(app.element("logBody").markup,/INR 75.5/);
+});
+
+test("legacy costs remain readable and zero differs from an omitted cost", async () => {
+  const app = await labelApp();
+  app.run('shipments = [{id:"old",cost:500},{id:"blank",cost:null}]; renderLog()');
+  assert.match(app.element("logBody").markup,/500 \(currency unrecorded\)/);
+  assert.equal(app.element("logBody").markup.match(/Cost ·/g).length,1);
+  app.element("shipmentEntry").open = true;
+  app.element("shipmentEntry").toggle();
+  app.element("lgTo").value = "a";
+  app.element("lgCost").value = "0";
+  app.element("lgCurrency").value = "";
+  await app.confirm();
+  assert.equal(app.run("shipments.length"),2);
+  app.element("lgCurrency").value = "INR";
+  await app.confirm();
+  assert.match(app.element("logBody").markup,/INR 0/);
+});
+
+test("retry retains the submitted currency, date and carrier even on a different sender", async () => {
+  const sessionStorage = storage(), first = openApp({sessionStorage});
+  first.element("lgCurrency").value = "JPY";
+  first.element("lgCost").value = "900";
+  first.element("lgService").value = "Yamato Transport";
+  first.element("lgDate").value = "2026-01-01";
+  let submitted;
+  first.env.rest = async (_,opts) => { submitted = JSON.parse(opts.body); throw Error("offline"); };
+  await first.confirm();
+
+  const retry = openApp({sessionStorage});
+  retry.run('senders = [{id:"i",country:"India"}]; activeSenderId = "i"; restorePendingShipment()');
+  assert.equal(retry.element("lgDate").value,"2026-01-01");
+  assert.equal(retry.element("lgCurrency").value,"JPY");
+  assert.equal(retry.element("lgService").value,"Yamato Transport");
+  assert.ok(retry.element("lgService").options.some(o => o.value === "Yamato Transport"));
+  retry.env.rest = async (_,opts) => {
+    assert.deepEqual(JSON.parse(opts.body),submitted);
+    return [submitted];
+  };
+  await retry.confirm();
+  assert.equal(retry.run("shipments[0].cost_currency"),"JPY");
+});
