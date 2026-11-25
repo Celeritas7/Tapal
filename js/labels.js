@@ -121,7 +121,7 @@ $("hideBtn").onclick = () => {
   $("previewBtn").focus({preventScroll:true});
   window.scrollTo(0, editorScroll);
 };
-$("printBtn").onclick = () => { if(build()){ rememberPreparedParcels(); $("lgTo").value = printedDestination(); setTimeout(() => window.print(), 60); } };
+$("printBtn").onclick = () => { if(build()){ rememberPreparedParcels(true); setTimeout(() => window.print(), 60); } };
 
 /* ---------- direct PDF download ---------- */
 /* Renders each A4 sheet to canvas and packs them into one PDF — no print dialog.
@@ -131,7 +131,7 @@ const loadScript = src => new Promise((ok, bad) => {
 });
 $("pdfBtn").onclick = async () => {
   if(!build()) return;
-  const destination = printedDestination();
+  const exportedLabel = currentLabel();
   const wasPreview = document.body.classList.contains("preview");
   document.body.classList.add("preview");
   fit();
@@ -151,8 +151,7 @@ $("pdfBtn").onclick = async () => {
       pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
     }
     pdf.save("parcel-labels-" + new Date().toISOString().slice(0,10) + ".pdf");
-    rememberPreparedParcels();
-    $("lgTo").value = destination;
+    if(exportedLabel === currentLabel()) rememberPreparedParcels(true);
     say("PDF saved to your downloads.");
   }catch(e){
     console.error(e);
