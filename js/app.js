@@ -810,6 +810,10 @@ function senderDestinationName(s){
   return [s.name, s.label || s.city, s.country].filter(Boolean).join(" — ");
 }
 const UNTRACKED = "Untracked service";
+function canPrintBarcode(value){
+  return typeof value === "string" && value.trim() !== "" && value !== UNTRACKED &&
+    value.length <= 48 && !/[^ -~]/.test(value);
+}
 function needsTracking(row){
   return ["booked","in transit","delivered","problem"].includes(row.status) && !(row.consignment_no || "").trim();
 }
@@ -830,12 +834,18 @@ function renderLog(){
     <td>${esc(s.booked_on||"")}</td>
     <td>${esc(s.recipient||"")}</td>
     <td>${esc(s.service||"")}${s.cost == null ? "" : `<div>Cost · ${esc(shipmentCostText(s))}</div>`}</td>
-    <td class="cn">${needsTracking(s) && canWrite() ? `<details><summary>Add tracking number</summary><input aria-label="Tracking number" type="text"><button class="btn small" data-track="${esc(s.id)}">Save</button><button class="btn ghost small" data-untracked="${esc(s.id)}">Untracked service</button></details>` : esc(s.consignment_no || (needsTracking(s) ? "Missing" : "—"))}</td>
+    <td class="cn">${needsTracking(s) && canWrite() ? `<details><summary>Add tracking number</summary><input aria-label="Tracking number" type="text"><button class="btn small" data-track="${esc(s.id)}">Save</button><button class="btn ghost small" data-untracked="${esc(s.id)}">Untracked service</button></details>` : esc(s.consignment_no || (needsTracking(s) ? "Missing" : "—"))}
+      ${canPrintBarcode(s.consignment_no) ? `<button type="button" class="btn ghost small" data-barcode="${esc(s.id)}">Barcode label</button>` : ""}</td>
     <td><span class="pill">${esc(s.status||"")}</span>
       ${s.status === "packed" && canWrite() ? `<button class="btn small" data-book="${esc(s.id)}">Mark booked</button>` : ""}</td>
     <td>${canWrite() ? `<button class="btn danger small" data-dellog="${s.id}">Remove</button>` : ""}</td></tr>`).join("");
 }
 $("logBody").addEventListener("click", async e => {
+  if(e.target.dataset.barcode){
+    const row = shipments.find(item => item.id === e.target.dataset.barcode);
+    if(row) openBarcode(row,e.target);
+    return;
+  }
   const bookedId = e.target.dataset.book;
   if(bookedId && canWrite()){
     const button = e.target;
