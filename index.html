@@ -91,7 +91,7 @@
       <div class="opt"><input type="checkbox" id="optInside" checked><label for="optInside">Add a small duplicate slip for <strong>inside</strong> each box</label></div>
     </div>
     </details>
-    <div class="row"><button class="btn" id="previewBtn">Preview label</button><button class="btn ghost" id="recordPrepared" style="display:none">Record as sent</button></div>
+    <div class="row"><button class="btn" id="previewBtn">Preview label</button><button class="btn ghost" id="recordPrepared" style="display:none;max-width:100%;white-space:normal;overflow-wrap:anywhere">Record as sent</button></div>
 
   </section>
 
@@ -127,7 +127,7 @@
       <div><label class="f" for="lgDate">Booked on</label><input type="date" id="lgDate"></div>
       <div><label class="f" for="lgCost">Cost (₹)</label><input type="number" id="lgCost" min="0" step="1"></div>
       <div><label class="f" for="lgStatus">Status</label>
-        <select id="lgStatus"><option>packed</option><option>booked</option><option>in transit</option><option>delivered</option><option>problem</option></select></div>
+        <select id="lgStatus"><option selected>booked</option><option>packed</option><option>in transit</option><option>delivered</option><option>problem</option></select></div>
     </fieldset>
     <div class="row"><button class="btn ghost" id="addLog">Confirm shipment</button><button class="btn ghost" id="cancelShipment">Cancel</button></div></details>
     <div class="wrapx"><table class="log"><thead><tr>

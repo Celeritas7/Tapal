@@ -233,6 +233,8 @@ async function doSignOut(expired){
   setPendingShipment(null);
   saveSession(null);
   role = null;
+  preparedParcels = []; preparedLabel = null; autoFilledDestination = null; recordingPrepared = false;
+  updateRecordAction();
   senders = []; activeSenderId = null; addresses = []; shipments = [];
   showTab("labels");
   showApp(false);
@@ -269,7 +271,7 @@ async function loadAll(){
   }
   try{ activeSenderId = localStorage.getItem(AKEY) || activeSenderId; }catch(e){}
   if(!senders.some(x => x.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
-  addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:true, copies:1, fragile:false }; });
+  addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:false, copies:1, fragile:false }; });
   renderSenders(); render(); renderLog(); fillLogPicker(); renderCosts();
 }
 
@@ -296,6 +298,7 @@ function renderHome(){
       <label>Copies <input class="copies" type="number" min="1" max="20" value="${state.copies || 1}"></label>
       <label><input type="checkbox" ${state.fragile?"checked":""}> Fragile</label></div>`;
   }).join("");
+  invalidateChangedLabel();
   renderCosts();
 }
 function renderSenders(){
@@ -394,13 +397,13 @@ $("saveAddr").onclick = async () => {
         : await rest("tapal_addresses", { method:"POST", headers:RETURN, body:JSON.stringify(rec) });
       row = { ...out[0], addr: out[0].line };
     }catch(e){ say("Save failed: " + e.message); return; }
-    if(!(row.id in ui)) ui[row.id] = { sel:true, copies:1 };
+    if(!(row.id in ui)) ui[row.id] = { sel:false, copies:1 };
     addresses = editingId ? addresses.map(a => a.id===editingId?row:a) : [...addresses,row];
     addresses.sort((x,y) => (x.name||"").localeCompare(y.name||""));
   }else{
     const id = editingId || "a"+Date.now();
     const row = {...rec, id, addr:rec.line};
-    if(!(id in ui)) ui[id] = { sel:true, copies:1 };
+    if(!(id in ui)) ui[id] = { sel:false, copies:1 };
     addresses = editingId ? addresses.map(a => a.id===id?row:a) : [...addresses,row];
     await local.set(snapshot());
   }
@@ -473,6 +476,8 @@ $("optFragile").onchange = e => {
 
 /* ---------- shipment log ---------- */
 let preparedParcels = [];
+let preparedLabel = null;
+let autoFilledDestination = null;
 let recordingPrepared = false;
 let pendingShipment = null;
 function pendingKey(){ return "tapal-pending-shipment:" + session.user_id; }
@@ -529,18 +534,57 @@ async function saveServerShipment(row){
   if(existing?.[0]?.id === row.id) return existing[0];
   throw new Error("Couldn’t confirm the shipment. Tap Retry save.");
 }
-function rememberPreparedParcels(){
-  preparedParcels = recipients().map(dest => ({
-    key: senders.includes(dest) ? "sender:" + dest.id : dest.id,
-    contents: $("contents").value
-  }));
-  $("recordPrepared").style.display = canWrite() && preparedParcels.length ? "" : "none";
+// Compare the actual sender, destinations and contents that identify this parcel batch.
+function currentLabel(){
+  return JSON.stringify([activeSender(), recipients(), $("contents").value]);
+}
+function updateRecordAction(){
+  const button = $("recordPrepared");
+  button.style.display = canWrite() && preparedParcels.length ? "" : "none";
+  if(preparedParcels.length){
+    const destination = preparedParcels.length === 1
+      ? preparedParcels[0].name : preparedParcels.length + " recipients";
+    button.textContent = "Record as sent · " + destination;
+  }
+}
+function invalidateChangedLabel(){
+  if(preparedLabel === null || preparedLabel === currentLabel()) return;
+  preparedLabel = null;
+  preparedParcels = [];
+  updateRecordAction();
+  if(!pendingShipment && !$("addLog").disabled){
+    if(recordingPrepared) closeShipmentEntry();
+    else if(autoFilledDestination && $("lgTo").value === autoFilledDestination) $("lgTo").value = "";
+  }
+  autoFilledDestination = null;
+  say("Label changed. Preview it again before recording the parcel.");
+}
+$("contents").addEventListener("input", invalidateChangedLabel);
+$("lgTo").addEventListener("change", () => { autoFilledDestination = null; });
+
+function rememberPreparedParcels(prefill = false){
+  invalidateChangedLabel();
+  if(preparedLabel === null){
+    preparedLabel = currentLabel();
+    preparedParcels = recipients().map(dest => ({
+      key: senders.includes(dest) ? "sender:" + dest.id : dest.id,
+      name: dest.label || dest.name,
+      contents: $("contents").value
+    }));
+  }
+  updateRecordAction();
+  if(prefill && !pendingShipment && !$("shipmentEntry").open){
+    autoFilledDestination = preparedParcels.length === 1 ? preparedParcels[0].key : "";
+    $("lgTo").value = autoFilledDestination;
+  }
 }
 $("recordPrepared").onclick = () => {
+  invalidateChangedLabel();
   if(!canWrite() || !preparedParcels.length) return;
   if(pendingShipment || $("addLog").disabled){
     showTab("history"); $("shipmentEntry").open = true; return;
   }
+  autoFilledDestination = null;
   recordingPrepared = true;
   fillLogPicker();
   $("lgTo").value = preparedParcels.length === 1 ? preparedParcels[0].key : "";
@@ -552,7 +596,9 @@ $("recordPrepared").onclick = () => {
   $("lgTo").focus();
 };
 function closeShipmentEntry(){
+  autoFilledDestination = null;
   recordingPrepared = false;
+  $("lgStatus").value = "booked";
   $("shipmentEntry").open = false;
   fillLogPicker();
   $("lgTo").value = "";
@@ -566,6 +612,7 @@ $("shipmentEntry").addEventListener("toggle", () => {
   if(!$("shipmentEntry").open && recordingPrepared && !pendingShipment && !$("addLog").disabled) closeShipmentEntry();
 });
 function fillLogPicker(){
+  if(pendingShipment) return;
   const sel = $("lgTo"), cur = sel.value;
   sel.innerHTML = '<option value="">Select</option>';
   addresses.forEach(a => sel.add(new Option(a.label ? `${a.name} — ${a.label}` : a.name, a.id)));
@@ -582,12 +629,6 @@ function fillLogPicker(){
 }
 function senderDestinationName(s){
   return [s.name, s.label || s.city, s.country].filter(Boolean).join(" — ");
-}
-function printedDestination(){
-  const chosen = recipients();
-  if(chosen.length !== 1) return "";
-  const dest = chosen[0];
-  return senders.includes(dest) ? "sender:" + dest.id : dest.id;
 }
 const UNTRACKED = "Untracked service";
 function needsTracking(row){
@@ -680,7 +721,8 @@ $("addLog").onclick = async () => {
     $("lgUntracked").checked = false; $("lgCn").disabled = false; $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
     if(recordingPrepared){
       preparedParcels = preparedParcels.filter(parcel => parcel.key !== selected);
-      if(!preparedParcels.length) $("recordPrepared").style.display = "none";
+      if(!preparedParcels.length) preparedLabel = null;
+      updateRecordAction();
     }
     closeShipmentEntry();
     renderLog(); say("Shipment recorded.");
