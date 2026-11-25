@@ -54,7 +54,36 @@ $("tabs").addEventListener("click", e => {
   }
 });
 
-$("lgDate").value = new Date().toISOString().slice(0,10);
+const bookingCurrencies = {
+  India:"INR", Japan:"JPY", "United States":"USD", "United Kingdom":"GBP",
+  Singapore:"SGD", Australia:"AUD", "United Arab Emirates":"AED"
+};
+const bookingServices = {
+  India:["Speed Post", "India Post Parcel (surface)", "DTDC", "Delhivery", "Blue Dart", "Xpressbees"],
+  Japan:["Japan Post", "Yamato Transport"]
+};
+
+function localBookingDate(now = new Date()){
+  const pad = n => String(n).padStart(2, "0");
+  return [now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate())].join("-");
+}
+
+let bookingOrigin = null;
+function senderCountry(){
+  return activeSender().country || (activeSenderId ? "India" : "");
+}
+function startBooking(row){
+  const country = senderCountry();
+  const carriers = bookingServices[country] || [];
+  const services = [...carriers, "Bus parcel", "Hand carried", "Other service"];
+  if(row?.service && !services.includes(row.service)) services.push(row.service);
+  const service = $("lgService");
+  service.replaceChildren(new Option("Select service", ""), ...services.map(s => new Option(s, s)));
+  service.value = row ? row.service || "" : carriers[0] || "";
+  $("lgCurrency").value = row ? row.cost_currency || "" : bookingCurrencies[country] || "";
+  $("lgDate").value = row ? row.booked_on || "" : localBookingDate();
+  bookingOrigin = country;
+}
 
 /* ---------- local fallback (Claude sandbox → window.storage, hosted → localStorage) ---------- */
 const LKEY = "parcel-label-data";
@@ -511,8 +540,7 @@ function restorePendingShipment(){
   picker.value = attempt.selected;
   $("lgContents").value = row.contents;
   $("lgCost").value = row.cost ?? "";
-  $("lgService").value = row.service;
-  $("lgDate").value = row.booked_on || "";
+  startBooking(row);
   $("lgStatus").value = row.status;
   $("lgUntracked").checked = row.consignment_no === UNTRACKED;
   $("lgCn").disabled = $("lgUntracked").checked;
@@ -586,6 +614,7 @@ $("recordPrepared").onclick = () => {
   }
   autoFilledDestination = null;
   recordingPrepared = true;
+  startBooking();
   fillLogPicker();
   $("lgTo").value = preparedParcels.length === 1 ? preparedParcels[0].key : "";
   $("lgUntracked").checked = false; $("lgCn").disabled = false; $("lgCn").value = ""; $("lgCost").value = "";
@@ -596,6 +625,8 @@ $("recordPrepared").onclick = () => {
   $("lgTo").focus();
 };
 function closeShipmentEntry(){
+  bookingOrigin = null;
+  $("lgCost").value = "";
   autoFilledDestination = null;
   recordingPrepared = false;
   $("lgStatus").value = "booked";
@@ -609,6 +640,9 @@ $("cancelShipment").onclick = () => {
   closeShipmentEntry();
 };
 $("shipmentEntry").addEventListener("toggle", () => {
+  if($("shipmentEntry").open && !recordingPrepared && !pendingShipment){
+    if(bookingOrigin === null || (bookingOrigin !== senderCountry() && !$("lgCost").value)) startBooking();
+  }
   if(!$("shipmentEntry").open && recordingPrepared && !pendingShipment && !$("addLog").disabled) closeShipmentEntry();
 });
 function fillLogPicker(){
@@ -636,6 +670,10 @@ function needsTracking(row){
 }
 $("missingOnly").onchange = renderLog;
 $("lgUntracked").onchange = () => { $("lgCn").disabled = $("lgUntracked").checked; };
+function shipmentCostText(row){
+  if(row.cost == null) return "";
+  return row.cost_currency ? row.cost_currency + " " + row.cost : row.cost + " (currency unrecorded)";
+}
 function renderLog(){
   const b = $("logBody");
   const missing = shipments.filter(needsTracking);
@@ -646,7 +684,7 @@ function renderLog(){
   b.innerHTML = visible.map(s => `<tr>
     <td>${esc(s.booked_on||"")}</td>
     <td>${esc(s.recipient||"")}</td>
-    <td>${esc(s.service||"")}</td>
+    <td>${esc(s.service||"")}${s.cost == null ? "" : `<div>Cost · ${esc(shipmentCostText(s))}</div>`}</td>
     <td class="cn">${needsTracking(s) && canWrite() ? `<details><summary>Add tracking number</summary><input aria-label="Tracking number" type="text"><button class="btn small" data-track="${esc(s.id)}">Save</button><button class="btn ghost small" data-untracked="${esc(s.id)}">Untracked service</button></details>` : esc(s.consignment_no || (needsTracking(s) ? "Missing" : "—"))}</td>
     <td><span class="pill">${esc(s.status||"")}</span></td>
     <td>${canWrite() ? `<button class="btn danger small" data-dellog="${s.id}">Remove</button>` : ""}</td></tr>`).join("");
@@ -693,6 +731,13 @@ $("addLog").onclick = async () => {
   const selected = pendingShipment?.selected ?? $("lgTo").value;
   const addr = addresses.find(a => a.id === selected);
   const own = senders.find(s => "sender:" + s.id === selected);
+  const amount = $("lgCost");
+  if(!pendingShipment && (amount.validity?.badInput || amount.validity?.rangeUnderflow || amount.validity?.stepMismatch)){
+    say("Enter a non-negative postage amount with up to two decimal places."); amount.focus(); return;
+  }
+  if(!pendingShipment && amount.value !== "" && !$("lgCurrency").value){
+    say("Choose the currency for this postage cost."); $("lgCurrency").focus(); return;
+  }
   const rec = {
     address_id: online && addr ? addr.id : null,
     recipient: own ? senderDestinationName(own) : (addr ? addr.name : ""),
@@ -700,7 +745,8 @@ $("addLog").onclick = async () => {
     service: $("lgService").value,
     consignment_no: $("lgUntracked").checked ? UNTRACKED : $("lgCn").value.trim(),
     booked_on: $("lgDate").value || null,
-    cost: $("lgCost").value ? Number($("lgCost").value) : null,
+    cost: amount.value === "" ? null : Number(amount.value),
+    ...(amount.value === "" ? {} : {cost_currency:$("lgCurrency").value}),
     status: $("lgStatus").value
   };
   if(!pendingShipment && !rec.recipient){ say("Pick who it went to."); return; }
