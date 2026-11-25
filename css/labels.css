@@ -114,3 +114,8 @@
   .customsPaper table{width:100%;border-collapse:collapse}
   .customsPaper th,.customsPaper td{text-align:left;border:1px solid #777;padding:2mm}
   .customsPaper td:first-child{width:45%}
+
+  .trackingSticker{align-self:start;margin:8mm auto;padding:3mm;text-align:center;max-width:195mm;
+    overflow-wrap:anywhere;border:1px dashed #777;background:#fff;color:#000}
+  .trackingSticker canvas{display:block;height:20mm;max-width:100%;margin:3mm auto 1mm}
+  .trackingValue{font:14pt monospace;white-space:pre-wrap}
