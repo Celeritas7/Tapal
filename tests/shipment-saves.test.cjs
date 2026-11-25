@@ -383,3 +383,51 @@ test("a failed device address write preserves the form and retries only once", a
   await Promise.all([app.element("saveAddr").onclick(),app.element("saveAddr").onclick()]);
   assert.equal(JSON.parse(localStorage.getItem("parcel-label-data")).addresses.length,1);
 });
+
+test("reopening a partial prepared batch restores only outstanding destinations", async () => {
+  const first = await labelApp();
+  first.element("selAll").onclick();
+  first.element("contents").value = "Books";
+  first.element("previewBtn").onclick();
+  first.element("recordPrepared").onclick();
+  first.element("lgTo").value = "a";
+  await first.confirm();
+  const reopen = openApp({online:false,localStorage:first.env.localStorage});
+  await reopen.run("loadAll()");
+  assert.match(reopen.element("recordPrepared").textContent,/Recipient B/);
+  reopen.element("recordPrepared").onclick();
+  assert.equal(reopen.element("lgTo").value,"b");
+  assert.equal(reopen.element("lgContents").value,"Books");
+  reopen.element("lgCn").value = "CANCELED";
+  reopen.element("lgUntracked").checked = true;
+  reopen.element("cancelShipment").onclick();
+  for(const id of ["lgTo","lgCn","lgContents","lgCost"]) assert.equal(reopen.element(id).value,"");
+  assert.equal(reopen.element("lgUntracked").checked,false);
+  assert.equal(reopen.element("lgCn").disabled,false);
+  const other = openApp({online:false,localStorage:first.env.localStorage});
+  other.run('session = {user_id:"another"}');
+  await other.run("loadAll()");
+  assert.equal(other.run("preparedParcels.length"),0);
+});
+
+test("booking a packed cloud row recovers after a lost acknowledgment", async () => {
+  const app = openApp();
+  app.run('shipments = [{id:"p",status:"packed",consignment_no:""}]');
+  const row = {id:"p",status:"packed",consignment_no:""};
+  const actions = [];
+  app.env.rest = async (path, opts) => {
+    if(!opts) return [row];
+    actions.push(opts.method);
+    assert.match(path,/status=eq.packed/);
+    if(row.status !== "packed") return [];
+    Object.assign(row,JSON.parse(opts.body));
+    throw Error("Response lost");
+  };
+  const event = {target:{dataset:{book:"p"}}};
+  await app.element("logBody").click(event);
+  await app.element("logBody").click(event);
+  assert.deepEqual(actions,["PATCH","PATCH"]);
+  assert.equal(app.run("shipments.length"),1);
+  assert.equal(app.run("shipments[0].status"),"booked");
+  assert.equal(app.element("missingCount").textContent,"· 1 missing");
+});
