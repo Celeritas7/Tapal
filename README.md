@@ -178,10 +178,10 @@ For a Japanese sender or recipient, enter the address in Japanese and optionally
 Phase 11 — **Address book housekeeping** *(implemented)*
 In Address book, export active recipients as CSV or import a file with the same headings. Exact duplicates, including archived matches, are skipped. Archive a recipient to remove it from parcel selection, then use Archived recipients to restore it. Device copies stay on that device.
 
-### Still to build
+Phase 12 — **Carrier tracking lookup** *(requires Netlify Functions setup)*
+Signed-in members can paste a consignment number in History to check its status through EasyPost. The result is displayed separately from the saved shipment status. Configure EASYPOST_API_KEY as a server-side Netlify Functions secret and deploy the function with the site. Use an EasyPost test key and test tracking numbers for acceptance before enabling production tracking. Carrier identification and coverage depend on the provider. Static-only hosts can still use manual tracking.
 
-Phase 12 — **Tracking**
-Paste a consignment number and pull its status, instead of typing it in by hand.
+### Still to build
 
 Phase 13 — **Cost estimate into the log**
 One click to push the chosen estimate into the shipment log row.

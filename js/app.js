@@ -338,6 +338,7 @@ async function doSignOut(expired){
   preparedParcels = []; preparedLabel = null; autoFilledDestination = null; recordingPrepared = false;
   updateRecordAction();
   senders = []; activeSenderId = null; setBookRows([]); $("archivedList").textContent = ""; $("bookStatus").textContent = ""; shipments = [];
+  $("trackingCode").value = ""; $("trackingResult").textContent = "";
   showTab("labels");
   showApp(false);
   setConn("off", "Signed out");
@@ -812,6 +813,29 @@ function canPrintBarcode(value){
 function needsTracking(row){
   return ["booked","in transit","delivered","problem"].includes(row.status) && !(row.consignment_no || "").trim();
 }
+let trackingRequest = 0;
+$("trackingCode").oninput = () => { trackingRequest++; $("trackingResult").textContent = ""; };
+$("trackingLookup").onsubmit = async event => {
+  event.preventDefault();
+  const code = $("trackingCode").value.trim(), output = $("trackingResult");
+  const request = ++trackingRequest, owner = session?.user_id;
+  if(!online || !owner){ output.textContent = "Sign in online to check carrier status."; return; }
+  output.textContent = "Checking carrier status…";
+  try{
+    if(!await ensureSession() || session?.user_id !== owner) throw Error("Sign in again to check carrier status.");
+    const response = await fetch("/.netlify/functions/parcel-status",{
+      method:"POST",headers:{Authorization:"Bearer " + session.access_token,"Content-Type":"application/json"},
+      body:JSON.stringify({code})
+    });
+    if(!response.headers.get("content-type")?.includes("application/json")) throw Error("Live tracking is unavailable on this host.");
+    const data = await response.json();
+    if(!response.ok || !data.status) throw Error(data.error || "Carrier lookup failed.");
+    if(request === trackingRequest && session?.user_id === owner){
+      const date = new Date(data.updated);
+      output.textContent = [code,data.carrier,data.status.replace(/_/g," "),data.updated && Number.isFinite(date.getTime()) ? date.toLocaleString() : ""].filter(Boolean).join(" · ");
+    }
+  }catch(error){ if(request === trackingRequest && session?.user_id === owner) output.textContent = error.message; }
+};
 $("missingOnly").onchange = renderLog;
 $("lgUntracked").onchange = () => { $("lgCn").disabled = $("lgUntracked").checked; };
 function shipmentCostText(row){
