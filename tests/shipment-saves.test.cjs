@@ -34,7 +34,7 @@ function openApp({sessionStorage = storage(), localStorage = storage(), online =
     Option:class { constructor(text,value){ this.text = text; this.value = value; } }
   });
   const run = code => vm.runInContext(code, env);
-  for(const file of ["config.js","countries.js","customs.js","app.js"]) run(readFileSync(join(__dirname,"../js",file),"utf8"));
+  for(const file of ["config.js","countries.js","customs.js","address-book.js","app.js"]) run(readFileSync(join(__dirname,"../js",file),"utf8"));
   run(`online = ${online}; role = "operator"; session = {user_id:"u"};
     addresses = [{id:"a",name:"Test recipient"}];`);
   element("lgTo").value = "a";
@@ -502,4 +502,27 @@ test("Japanese address labels preserve both scripts and allow clearing romaji", 
   assert.deepEqual(Array.from(lines), ["〒 362-0001", "埼玉県, 上尾市", "Ageo-shi, Saitama-ken", "JAPAN"]);
   assert.equal(app.run('toRec({country:"Japan", romaji:""}, {address_romaji:"Ageo"}).address_romaji'), null);
   assert.equal(app.run('Object.hasOwn(toRec({country:"India"}), "address_romaji")'), false);
+});
+
+test("CSV round trips multiline bilingual records and skips duplicates", async () => {
+  const app = await labelApp();
+  app.run(`const sourceRow = {name:'A, "B"',phone:'+81 123',addr:'上尾市\\nRoom 02',country:'Japan',pin:'362-0001',address_romaji:'Ageo'};
+    const csv = [csvFields,recipientCells(sourceRow)].map(row => row.map(encodeCell).join(",")).join("\\r\\n");
+    const imported = parseRecipientCSV(csv);`);
+  assert.equal(app.run("imported[0].line"), "上尾市\nRoom 02");
+  assert.equal(app.run("imported[0].phone"), "+81 123");
+  assert.equal(app.run("newRecipients([sourceRow],imported).length"), 0);
+  assert.throws(() => app.run('parseRecipientCSV(csv + String.fromCharCode(34))'));
+});
+
+test("archived device recipients survive reload and restore under the same ID", async () => {
+  const app = await labelApp();
+  await app.run('changeArchive("a",true)');
+  await app.run("loadAll()");
+  assert.equal(app.run('addresses.some(a => a.id === "a")'), false);
+  assert.equal(app.run('archivedRecipients[0].id'), "a");
+  await app.run('changeArchive("a",false)');
+  await app.run("loadAll()");
+  assert.equal(app.run('addresses.filter(a => a.id === "a").length'), 1);
+  assert.equal(app.run('archivedRecipients.length'), 0);
 });
