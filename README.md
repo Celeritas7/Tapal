@@ -181,10 +181,8 @@ In Address book, export active recipients as CSV or import a file with the same 
 Phase 12 — **Carrier tracking lookup** *(requires Netlify Functions setup)*
 Signed-in members can paste a consignment number in History to check its status through EasyPost. The result is displayed separately from the saved shipment status. Configure EASYPOST_API_KEY as a server-side Netlify Functions secret and deploy the function with the site. Use an EasyPost test key and test tracking numbers for acceptance before enabling production tracking. Carrier identification and coverage depend on the provider. Static-only hosts can still use manual tracking.
 
-### Still to build
-
-Phase 13 — **Cost estimate into the log**
-One click to push the chosen estimate into the shipment log row.
+Phase 13 — **Cost estimate into the log** *(implemented)*
+Choose **Use ₹… estimate** for a service and recipient. History opens an editable shipment with the calculated central estimate rounded to the nearest ₹5, alongside the selected recipient and service. Confirm the actual postage paid before saving.
 
 ## Layout
 
