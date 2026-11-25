@@ -64,12 +64,29 @@ const local = {
     try{ const v = localStorage.getItem(LKEY); return v? JSON.parse(v):null; }catch(e){}
     return null;
   },
+  async write(d){
+    const data = JSON.stringify(d);
+    if(window.storage) await window.storage.set(LKEY, data);
+    else localStorage.setItem(LKEY, data);
+  },
   async set(d){
-    try{ if(window.storage){ await window.storage.set(LKEY, JSON.stringify(d)); return; } }catch(e){}
-    try{ localStorage.setItem(LKEY, JSON.stringify(d)); }catch(e){}
+    try{ await this.write(d); }
+    catch(e){ try{ localStorage.setItem(LKEY, JSON.stringify(d)); }catch(_){} }
   }
 };
 const snapshot = () => ({ senders, activeSenderId, addresses, shipments });
+
+// Serialize changes to the device shipment list. Publish each change after its write succeeds.
+let deviceShipmentWrite = Promise.resolve();
+function saveDeviceShipments(change){
+  const write = deviceShipmentWrite.then(async () => {
+    const next = change(shipments);
+    await local.write({...snapshot(), shipments:next});
+    shipments = next;
+  });
+  deviceShipmentWrite = write.catch(() => {});
+  return write;
+}
 
 function setConn(state, text){
   const el = $("conn");
@@ -177,6 +194,7 @@ async function loadParcelRecords(){
   }
   applyRole();
   showApp(true);
+  if(online && canWrite()) restorePendingShipment();
   if(online) setConn("live", "Synced — " + (session.email || "signed in") + " · " + role);
 }
 
@@ -212,6 +230,7 @@ $("googleLogin").onclick = () => {
 
 async function doSignOut(expired){
   try{ if(session) await authFetch("logout", {}, true); }catch(e){}
+  setPendingShipment(null);
   saveSession(null);
   role = null;
   senders = []; activeSenderId = null; addresses = []; shipments = [];
@@ -455,6 +474,61 @@ $("optFragile").onchange = e => {
 /* ---------- shipment log ---------- */
 let preparedParcels = [];
 let recordingPrepared = false;
+let pendingShipment = null;
+function pendingKey(){ return "tapal-pending-shipment:" + session.user_id; }
+function setPendingShipment(attempt){
+  pendingShipment = attempt;
+  if(session && session.user_id){
+    try{
+      if(attempt) sessionStorage.setItem(pendingKey(), JSON.stringify(attempt));
+      else sessionStorage.removeItem(pendingKey());
+    }catch(e){ /* In restricted storage, retries still use this page's attempt. */ }
+  }
+  $("shipmentFields").disabled = !!attempt;
+  $("addLog").textContent = attempt ? "Retry save" : "Confirm shipment";
+}
+
+function restorePendingShipment(){
+  let attempt;
+  try{ attempt = JSON.parse(sessionStorage.getItem(pendingKey())); }catch(e){ return; }
+  if(!attempt || !attempt.row || !attempt.row.id) return;
+  if(shipments.some(row => row.id === attempt.row.id)){
+    setPendingShipment(null);
+    say("Your previous shipment was recorded.");
+    return;
+  }
+  setPendingShipment(attempt);
+  const row = attempt.row;
+  const picker = $("lgTo");
+  if(!Array.from(picker.options).some(option => option.value === attempt.selected)){
+    picker.add(new Option(row.recipient, attempt.selected));
+  }
+  picker.value = attempt.selected;
+  $("lgContents").value = row.contents;
+  $("lgCost").value = row.cost ?? "";
+  $("lgService").value = row.service;
+  $("lgDate").value = row.booked_on || "";
+  $("lgStatus").value = row.status;
+  $("lgUntracked").checked = row.consignment_no === UNTRACKED;
+  $("lgCn").disabled = $("lgUntracked").checked;
+  $("lgCn").value = $("lgUntracked").checked ? "" : row.consignment_no;
+  showTab("history");
+  $("shipmentEntry").open = true;
+  say("The previous save was interrupted. Tap Retry save to finish.");
+}
+
+async function saveServerShipment(row){
+  const result = await rest("tapal_shipments?on_conflict=id", {
+    method:"POST",
+    headers:{Prefer:"resolution=ignore-duplicates,return=representation"},
+    body:JSON.stringify(row)
+  });
+  if(result?.[0]?.id === row.id) return result[0];
+  // An earlier request may already have committed. Read it without overwriting later edits.
+  const existing = await rest("tapal_shipments?id=eq." + encodeURIComponent(row.id) + "&select=*");
+  if(existing?.[0]?.id === row.id) return existing[0];
+  throw new Error("Couldn’t confirm the shipment. Tap Retry save.");
+}
 function rememberPreparedParcels(){
   preparedParcels = recipients().map(dest => ({
     key: senders.includes(dest) ? "sender:" + dest.id : dest.id,
@@ -464,6 +538,9 @@ function rememberPreparedParcels(){
 }
 $("recordPrepared").onclick = () => {
   if(!canWrite() || !preparedParcels.length) return;
+  if(pendingShipment || $("addLog").disabled){
+    showTab("history"); $("shipmentEntry").open = true; return;
+  }
   recordingPrepared = true;
   fillLogPicker();
   $("lgTo").value = preparedParcels.length === 1 ? preparedParcels[0].key : "";
@@ -480,9 +557,13 @@ function closeShipmentEntry(){
   fillLogPicker();
   $("lgTo").value = "";
 }
-$("cancelShipment").onclick = closeShipmentEntry;
+$("cancelShipment").onclick = () => {
+  if(pendingShipment && !confirm("The previous save may have reached History. Stop retrying this shipment?")) return;
+  setPendingShipment(null);
+  closeShipmentEntry();
+};
 $("shipmentEntry").addEventListener("toggle", () => {
-  if(!$("shipmentEntry").open && recordingPrepared) closeShipmentEntry();
+  if(!$("shipmentEntry").open && recordingPrepared && !pendingShipment && !$("addLog").disabled) closeShipmentEntry();
 });
 function fillLogPicker(){
   const sel = $("lgTo"), cur = sel.value;
@@ -544,10 +625,13 @@ $("logBody").addEventListener("click", async e => {
         const previous = row.consignment_no == null ? "is.null" : "eq." + encodeURIComponent(row.consignment_no);
         const saved = await rest("tapal_shipments?id=eq." + encodeURIComponent(row.id) + "&consignment_no=" + previous,
           {method:"PATCH", headers:RETURN, body:JSON.stringify({consignment_no:value})});
-        if(!saved.length){ say("Shipment changed. Reload History to see its current tracking number."); return; }
+        if(!saved.length){
+          const current = await rest("tapal_shipments?id=eq." + encodeURIComponent(row.id) + "&select=consignment_no");
+          if(current?.[0]?.consignment_no !== value){ say("Shipment changed. Reload History to see its current tracking number."); return; }
+        }
       }
-      row.consignment_no = value;
-      if(!online) await local.set(snapshot());
+      if(online) row.consignment_no = value;
+      else await saveDeviceShipments(rows => rows.map(s => s.id === row.id ? {...s, consignment_no:value} : s));
       renderLog();
     }catch(err){ say("Tracking update failed: " + err.message); }
     finally{ controls.forEach(button => button.disabled = false); }
@@ -555,13 +639,17 @@ $("logBody").addEventListener("click", async e => {
   }
   const id = e.target.getAttribute("data-dellog"); if(!id) return;
   if(online) { try{ await rest("tapal_shipments?id=eq." + id, { method:"DELETE" }); }catch(e){ say("Delete failed: " + e.message); return; } }
-  shipments = shipments.filter(s => s.id !== id);
-  if(!online) await local.set(snapshot());
+  if(online) shipments = shipments.filter(s => s.id !== id);
+  else{
+    try{ await saveDeviceShipments(rows => rows.filter(s => s.id !== id)); }
+    catch(e){ say("Delete failed: " + e.message); return; }
+  }
   renderLog();
 });
 $("addLog").onclick = async () => {
   if(!canWrite() || $("addLog").disabled) return;
-  const selected = $("lgTo").value;
+  const owner = session?.user_id;
+  const selected = pendingShipment?.selected ?? $("lgTo").value;
   const addr = addresses.find(a => a.id === selected);
   const own = senders.find(s => "sender:" + s.id === selected);
   const rec = {
@@ -574,15 +662,20 @@ $("addLog").onclick = async () => {
     cost: $("lgCost").value ? Number($("lgCost").value) : null,
     status: $("lgStatus").value
   };
-  if(!rec.recipient){ say("Pick who it went to."); return; }
+  if(!pendingShipment && !rec.recipient){ say("Pick who it went to."); return; }
   $("addLog").disabled = true;
+  $("cancelShipment").disabled = true;
+  $("shipmentFields").disabled = true;
   try{
     if(online){
-        const out = await rest("tapal_shipments", { method:"POST", headers:RETURN, body:JSON.stringify(rec) });
-        shipments = [out[0], ...shipments];
+      if(!pendingShipment) setPendingShipment({selected, row:{...rec, id:crypto.randomUUID()}});
+      const saved = await saveServerShipment(pendingShipment.row);
+      if(session?.user_id !== owner) return;
+      shipments = [saved, ...shipments.filter(s => s.id !== saved.id)];
+      setPendingShipment(null);
     }else{
-      shipments = [{...rec, id:"s"+Date.now()}, ...shipments];
-      await local.set(snapshot());
+      const row = {...rec, id:crypto.randomUUID?.() || "s" + crypto.getRandomValues(new Uint32Array(4)).join("-")};
+      await saveDeviceShipments(rows => [row, ...rows]);
     }
     $("lgUntracked").checked = false; $("lgCn").disabled = false; $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
     if(recordingPrepared){
@@ -591,8 +684,16 @@ $("addLog").onclick = async () => {
     }
     closeShipmentEntry();
     renderLog(); say("Shipment recorded.");
-  }catch(e){ say("Log failed: " + e.message); }
-  finally{ $("addLog").disabled = !canWrite(); }
+  }catch(e){
+    if(session?.user_id !== owner) return;
+    if(e.status === 400 || e.status === 422) setPendingShipment(null);
+    $("shipmentEntry").open = true;
+    say((pendingShipment ? "Save unconfirmed. Tap Retry save. " : "Shipment save failed. ") + e.message);
+  }finally{
+    $("addLog").disabled = !canWrite();
+    $("cancelShipment").disabled = false;
+    $("shipmentFields").disabled = !!pendingShipment;
+  }
 };
 
 /* ---------- cost estimate ---------- */
