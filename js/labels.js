@@ -95,9 +95,19 @@ function fit(){
 }
 function updatePageNumber(){
   const pages = $("scalerInner").children;
-  const top = $("previewHeading").getBoundingClientRect().bottom;
+  if(!pages.length) return;
+  const scroller = $("sheets");
   let page = 0;
-  while(page + 1 < pages.length && pages[page].getBoundingClientRect().bottom <= top) page++;
+  if(scroller.scrollTop > 0){
+    if(scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1){
+      page = pages.length - 1;
+    }else{
+      const top = $("previewHeading").getBoundingClientRect().bottom;
+      const bottom = document.querySelector(".bar").getBoundingClientRect().top;
+      const middle = (top + bottom) / 2;
+      while(page + 1 < pages.length && pages[page].getBoundingClientRect().bottom < middle) page++;
+    }
+  }
   $("pageNumber").textContent = (page + 1) + " of " + pages.length;
 }
 $("sheets").addEventListener("scroll", updatePageNumber);
@@ -133,20 +143,27 @@ $("pdfBtn").onclick = async () => {
   if(!build()) return;
   const exportedLabel = currentLabel();
   const wasPreview = document.body.classList.contains("preview");
+  const homeScroll = window.scrollY;
   document.body.classList.add("preview");
+  $("previewMessage").textContent = "Preparing PDF…";
   fit();
   $("hideBtn").disabled = true;
   $("printBtn").disabled = true;
-  $("pdfBtn").disabled = true; say("Preparing PDF…");
-  const inner = $("scalerInner"), keep = inner.style.transform;
+  $("pdfBtn").disabled = true;
   try{
     if(!window.jspdf)       await loadScript("https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js");
     if(!window.html2canvas) await loadScript("https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js");
-    inner.style.transform = "none";
-    const sheets = [...inner.querySelectorAll(".sheet")];
+    const sheets = [...$("scalerInner").querySelectorAll(".sheet")];
     const pdf = new jspdf.jsPDF({ unit:"mm", format:"a4", compress:true });
     for(let i = 0; i < sheets.length; i++){
-      const c = await html2canvas(sheets[i], { scale:2, backgroundColor:"#fff", onclone: doc => { doc.querySelector(".scaler").style.overflow = "visible"; doc.getElementById("sheets").style.overflow = "visible"; } });
+      const c = await html2canvas(sheets[i], {
+        scale:2, backgroundColor:"#fff",
+        onclone(doc){
+          doc.getElementById("scalerInner").style.transform = "none";
+          doc.querySelector(".scaler").style.overflow = "visible";
+          doc.getElementById("sheets").style.overflow = "visible";
+        }
+      });
       if(i) pdf.addPage();
       pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
     }
@@ -156,13 +173,18 @@ $("pdfBtn").onclick = async () => {
   }catch(e){
     console.error(e);
     say("Couldn't build the PDF" + (navigator.onLine ? "" : " — you're offline") + ". Use Print / Save as PDF instead.");
+  }finally{
+    $("hideBtn").disabled = false;
+    $("printBtn").disabled = false;
+    $("pdfBtn").disabled = false;
+    if(wasPreview){
+      $("previewMessage").textContent = $("status").textContent;
+      fit();
+    }else{
+      document.body.classList.remove("preview");
+      window.scrollTo(0, homeScroll);
+    }
   }
-  inner.style.transform = keep;
-  $("hideBtn").disabled = false;
-  $("printBtn").disabled = false;
-  $("pdfBtn").disabled = false;
-  if(wasPreview) $("previewMessage").textContent = $("status").textContent;
-  if(wasPreview) fit(); else document.body.classList.remove("preview");
 };
 
 boot();
