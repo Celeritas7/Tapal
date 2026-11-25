@@ -18,8 +18,10 @@ function openApp({sessionStorage = storage(), localStorage = storage(), online =
   const elements = new Map();
   function element(id){
     if(!elements.has(id)) elements.set(id, {
-      style:{}, options:[], value:"", checked:false,
-      add(option){ this.options.push(option); },
+      style:{}, options:[], value:"", checked:false, parentNode:{clientWidth:0},
+      replaceChildren(...items){ this.options = items; },
+      set innerHTML(markup){ this.markup = markup; this.options = []; },
+      add(option){ this.options.push(option); option.remove = () => { this.options = this.options.filter(x => x !== option); }; },
       focus(){},
       addEventListener(name, handler){ this[name] = handler; }
     });
@@ -27,12 +29,12 @@ function openApp({sessionStorage = storage(), localStorage = storage(), online =
   }
   const env = vm.createContext({
     crypto:webcrypto, localStorage, sessionStorage, location:{hash:""}, console,
-    document:{getElementById:element, querySelector:element, querySelectorAll:()=>[], addEventListener(){}},
-    window:{addEventListener(){}},
+    document:{body:{classList:{add(){},remove(){}}}, getElementById:element, querySelector:element, querySelectorAll:()=>[], addEventListener(){}},
+    window:{addEventListener(){},scrollTo(){}},
     Option:class { constructor(text,value){ this.text = text; this.value = value; } }
   });
   const run = code => vm.runInContext(code, env);
-  for(const file of ["config.js","app.js"]) run(readFileSync(join(__dirname,"../js",file),"utf8"));
+  for(const file of ["config.js","countries.js","app.js"]) run(readFileSync(join(__dirname,"../js",file),"utf8"));
   run(`online = ${online}; role = "operator"; session = {user_id:"u"};
     addresses = [{id:"a",name:"Test recipient"}];`);
   element("lgTo").value = "a";
@@ -148,4 +150,100 @@ test("a lost tracking acknowledgment accepts only the same stored number on retr
   field.value = stored;
   await app.element("logBody").click(e);
   assert.equal(app.element("missingCount").textContent,"");
+});
+
+async function labelApp(){
+  const localStorage = storage();
+  localStorage.setItem("parcel-label-data",JSON.stringify({
+    senders:[{id:"j",name:"Japan home",country:"Japan"},{id:"i",name:"India home",country:"India"}],
+    addresses:[{id:"a",name:"Recipient A"},{id:"b",name:"Recipient B"}]
+  }));
+  const app = openApp({online:false,localStorage});
+  await app.run("loadAll()");
+  app.run("boot = () => {}"); // Start with the loaded device data.
+  app.run(readFileSync(join(__dirname,"../js/labels.js"),"utf8"));
+  app.element("shipmentEntry").open = false;
+  app.element("size").value = "two";
+  return app;
+}
+
+function pick(app, id, checked, own = false){
+  app.element("homeTo").onchange({target:{value:id,checked,dataset:{own:String(own)}}});
+}
+
+test("new label has zero recipients and changing destination requires a new preview", async () => {
+  const app = await labelApp();
+  assert.equal(app.run("recipients().length"),0);
+  assert.match(app.element("toSummary").textContent,/Choose recipients/);
+  pick(app,"a",true);
+  app.element("previewBtn").onclick();
+  app.element("hideBtn").onclick();
+  assert.match(app.element("recordPrepared").textContent,/Recipient A/);
+  app.element("recordPrepared").onclick();
+  assert.equal(app.element("lgTo").value,"a");
+  pick(app,"a",false);
+  pick(app,"i",true,true);
+  assert.equal(app.element("recordPrepared").style.display,"none");
+  assert.equal(app.element("shipmentEntry").open,false);
+  assert.equal(app.element("lgTo").value,"");
+  app.element("recordPrepared").onclick();
+  assert.equal(app.element("shipmentEntry").open,false);
+  app.element("previewBtn").onclick();
+  app.element("hideBtn").onclick();
+  assert.match(app.element("recordPrepared").textContent,/India home/);
+  app.element("recordPrepared").onclick();
+  assert.equal(app.element("lgTo").value,"sender:i");
+  assert.equal(app.element("lgStatus").value,"booked");
+  await app.confirm();
+  assert.equal(app.element("missingCount").textContent,"· 1 missing");
+});
+
+test("bulk selection is explicit and a partial batch names its remaining destination", async () => {
+  const app = await labelApp();
+  app.element("selAll").onclick();
+  app.element("previewBtn").onclick();
+  assert.match(app.element("recordPrepared").textContent,/2 recipients/);
+  app.element("recordPrepared").onclick();
+  assert.equal(app.element("lgTo").value,"");
+  app.element("lgTo").value = "b";
+  await app.confirm();
+  assert.match(app.element("recordPrepared").textContent,/Recipient A/);
+  app.element("previewBtn").onclick();
+  app.element("recordPrepared").onclick();
+  assert.equal(app.element("lgTo").value,"a");
+  app.element("selNone").onclick();
+  assert.equal(app.element("recordPrepared").style.display,"none");
+});
+
+test("History defaults to booked and preserves an explicit packed choice for that entry", async () => {
+  const doc = readFileSync(join(__dirname,"../index.html"),"utf8");
+  assert.match(doc,/<select id="lgStatus"><option selected>booked<\/option>/);
+  const app = await labelApp();
+  app.element("lgTo").value = "a";
+  app.element("lgStatus").value = "packed";
+  await app.confirm();
+  assert.equal(app.run("shipments[0].status"),"packed");
+  assert.equal(app.element("missingCount").textContent,"");
+  assert.equal(app.element("lgStatus").value,"booked");
+  app.element("lgTo").value = "b";
+  await app.confirm();
+  assert.equal(app.run("shipments[0].status"),"booked");
+  assert.equal(app.element("missingCount").textContent,"· 1 missing");
+});
+
+test("changing the sender or contents also clears a print-prefilled destination", async () => {
+  const app = await labelApp();
+  app.env.setTimeout = () => {};
+  pick(app,"b",true);
+  const print = app.element("printBtn");
+  print.onclick();
+  assert.equal(app.element("lgTo").value,"b");
+  app.element("homeFrom").onchange({target:{value:"i"}});
+  assert.equal(app.element("recordPrepared").style.display,"none");
+  assert.equal(app.element("lgTo").value,"");
+  print.onclick();
+  app.element("contents").value = "New contents";
+  app.element("contents").input();
+  assert.equal(app.element("recordPrepared").style.display,"none");
+  assert.equal(app.element("lgTo").value,"");
 });
