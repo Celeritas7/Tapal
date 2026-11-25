@@ -408,6 +408,7 @@ function renderHome(){
   const choices = [...addresses, ...senders.filter(s => s.id !== activeSenderId)];
   addresses.forEach(a => { if(!ui[a.id]) ui[a.id] = {sel:false,copies:1,fragile:false}; });
   const selected = recipients();
+  updateCustoms(activeSender(), selected);
   $("toSummary").textContent = "To · " + (selected.length === 1 ? selected[0].label || selected[0].name : selected.length ? selected.length + " recipients" : "Choose recipients");
   $("homeTo").innerHTML = choices.map(a => `<label class="opt"><input type="checkbox" data-own="${senders.includes(a)}" value="${esc(a.id)}" ${(senders.includes(a)?sui:ui)[a.id]?.sel?"checked":""}>${esc(a.label || a.name)} · ${esc(a.country || "India")}</label>`).join("") || "Add a destination in Address book.";
   $("recipientOptions").innerHTML = selected.map(a => {

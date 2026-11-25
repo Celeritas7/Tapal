@@ -34,7 +34,7 @@ function openApp({sessionStorage = storage(), localStorage = storage(), online =
     Option:class { constructor(text,value){ this.text = text; this.value = value; } }
   });
   const run = code => vm.runInContext(code, env);
-  for(const file of ["config.js","countries.js","app.js"]) run(readFileSync(join(__dirname,"../js",file),"utf8"));
+  for(const file of ["config.js","countries.js","customs.js","app.js"]) run(readFileSync(join(__dirname,"../js",file),"utf8"));
   run(`online = ${online}; role = "operator"; session = {user_id:"u"};
     addresses = [{id:"a",name:"Test recipient"}];`);
   element("lgTo").value = "a";
@@ -468,4 +468,21 @@ test("Retry restores online History atomically and keeps device parcels after a 
   assert.equal(app.run("shipments[0].id"),"cloud");
   assert.match(app.element("deviceHistoryRows").markup,/Device parcel/);
   assert.equal(data.getItem("parcel-label-data"),original);
+});
+
+test("customs worksheets follow the sender's postal service and clear when the parcel changes", () => {
+  const app = openApp();
+  app.run('updateCustoms({id:"in",country:"India"}, [{id:"jp",name:"Recipient",country:"Japan"}])');
+  assert.equal(app.element("customsCurrency").value,"INR");
+  assert.match(app.element("customsService").href,/indiapost/);
+  app.element("includeCustoms").checked = true;
+  const input = value => ({value, valueAsNumber:Number(value), validity:{valid:true}});
+  app.element("customsItems").children = [{querySelectorAll:()=>[input("Cotton & silk"),input("3"),input("11.75")]}];
+  const sheet = app.run('customsSheets({id:"in",country:"India"},{id:"jp",country:"Japan"})');
+  assert.match(sheet,/INR 35.25/);
+  assert.match(sheet,/Cotton &amp; silk/);
+  app.run('updateCustoms({id:"in",country:"India"}, [{id:"in2",country:"India"}])');
+  assert.equal(app.element("customsOptions").hidden,true);
+  assert.equal(app.element("includeCustoms").checked,false);
+  assert.equal(app.run("customsSheets({}, {})"),"");
 });

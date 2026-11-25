@@ -166,11 +166,10 @@ Add and edit open in a centred overlay instead of pushing the page down.
 Eight themes: Post office, Night, Slate, Kraft paper, Indigo mail, Sakura, Forest,
 High contrast. Front end split into css/ and js/ for maintenance.
 
-### Still to build
+Phase 8 — **Customs paperwork** *(worksheet and carrier handoff implemented)*
+For one India–Japan destination, Home offers an optional itemized worksheet with quantities, unit prices and declared totals. Preview, download or print it after the address sheets. Worksheet entries belong to the current parcel and editor session. Japan Post generates official declarations through International Mail My Page. India Post provides its own CN22/CN23 form service. Tapal links to the sender’s carrier for completion.
 
-Phase 8 — **Customs paperwork**
-CN22 / CN23 forms with a contents-and-value table, printed alongside the label.
-The real gap for India↔Japan parcels.
+### Still to build
 
 Phase 9 — **Barcode / QR on labels**
 Consignment number as a barcode, or a QR pointing at the shipment row.

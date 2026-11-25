@@ -91,6 +91,12 @@
       <div class="opt"><input type="checkbox" id="optInside" checked><label for="optInside">Add a small duplicate slip for <strong>inside</strong> each box</label></div>
     </div>
     </details>
+    <details id="customsOptions" hidden><summary>Customs paperwork</summary>
+      <label class="opt"><input type="checkbox" id="includeCustoms"> Include a contents-and-value worksheet for this parcel</label>
+      <div id="customsFields" hidden><label>Declared currency<select id="customsCurrency"><option>JPY</option><option>INR</option></select></label>
+      <div id="customsItems"></div><button class="btn ghost small" type="button" id="addCustomsItem">Add item</button></div>
+      <p class="hint">Complete the official CN22 or CN23 through <a id="customsService" target="_blank" rel="noopener"></a>.</p>
+    </details>
     <div class="row"><button class="btn" id="previewBtn">Preview label</button><button class="btn ghost" id="recordPrepared" style="display:none;max-width:100%;white-space:normal;overflow-wrap:anywhere">Record as sent</button></div>
 
   </section>
@@ -181,6 +187,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/countries.js"></script>
+<script src="js/customs.js"></script>
 <script src="js/app.js"></script>
 <script src="js/labels.js"></script>
 </body>
