@@ -89,32 +89,74 @@ function startBooking(row){
 const LKEY = "parcel-label-data";
 const local = {
   async get(){
-    try{ if(window.storage){ const r = await window.storage.get(LKEY); return r? JSON.parse(r.value):null; } }catch(e){}
-    try{ const v = localStorage.getItem(LKEY); return v? JSON.parse(v):null; }catch(e){}
-    return null;
+    if(window.storage){
+      let record;
+      try{ record = await window.storage.get(LKEY); }
+      catch(e){ if(!/not found|does not exist/i.test(e.message)) throw e; }
+      if(record) return JSON.parse(record.value);
+    }
+    const v = localStorage.getItem(LKEY);
+    return v ? JSON.parse(v) : null;
   },
   async write(d){
     const data = JSON.stringify(d);
     if(window.storage) await window.storage.set(LKEY, data);
     else localStorage.setItem(LKEY, data);
   },
-  async set(d){
-    try{ await this.write(d); }
-    catch(e){ try{ localStorage.setItem(LKEY, JSON.stringify(d)); }catch(_){} }
-  }
 };
-const snapshot = () => ({ senders, activeSenderId, addresses, shipments });
 
-// Serialize changes to the device shipment list. Publish each change after its write succeeds.
-let deviceShipmentWrite = Promise.resolve();
-function saveDeviceShipments(change){
-  const write = deviceShipmentWrite.then(async () => {
-    const next = change(shipments);
-    await local.write({...snapshot(), shipments:next});
-    shipments = next;
+// Older browsers and plain HTTP can coordinate tabs through an IndexedDB
+// read/write transaction. Only the lock lives here; existing records stay in place.
+function withDeviceLock(change){
+  if(window.navigator?.locks) return window.navigator.locks.request(LKEY, change);
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open("tapal-device-lock", 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("mutex");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      const tx = db.transaction("mutex", "readwrite");
+      const mutex = tx.objectStore("mutex");
+      let finished = false, result, failure;
+      tx.oncomplete = () => { db.close(); resolve(result); };
+      tx.onabort = () => { db.close(); reject(failure || tx.error); };
+      // Keep the lock while an asynchronous host storage adapter is writing.
+      function hold(){ if(!finished) mutex.get(0).onsuccess = hold; }
+      mutex.get(0).onsuccess = () => {
+        hold();
+        change().then(value => { result = value; finished = true; },
+          error => { failure = error; finished = true; tx.abort(); });
+      };
+    };
   });
-  deviceShipmentWrite = write.catch(() => {});
-  return write;
+}
+
+function saveDeviceRows(key, change){
+  return withDeviceLock(async () => {
+    const data = await local.get() || {};
+    const rows = key === "senders" ? deviceSenders(data) : data[key] || [];
+    const next = change(rows);
+    await local.write({...data, [key]:next});
+    return next;
+  });
+}
+
+function deviceId(){ return crypto.randomUUID?.() || Array.from(crypto.getRandomValues(new Uint32Array(4))).join("-"); }
+
+function deviceSenders(data){
+  return data.senders || (data.sender && (data.sender.name || data.sender.addr) ? [{id:"s1", ...data.sender}] : []);
+}
+
+function saveDeviceAddress(key, row, editing){
+  return saveDeviceRows(key, rows => {
+    if(!editing) return [...rows, row];
+    if(!rows.some(item => item.id === row.id)) throw Error("This address was removed. Reopen the address book.");
+    return rows.map(item => item.id === row.id ? {...item, ...row} : item);
+  });
+}
+
+async function saveDeviceShipments(change){
+  shipments = await saveDeviceRows("shipments", change);
 }
 
 function setConn(state, text){
@@ -185,7 +227,7 @@ async function boot(){
         ? "Offline — open via http://localhost, not the file itself"
         : "Offline — device only, nothing is syncing");
       showApp(true);
-      await loadAll();
+      try{ await loadAll(); }catch(e){ say("Could not read device records: " + e.message); }
     }
     return;
   }
@@ -294,13 +336,12 @@ async function loadAll(){
   }else{
     const d = await local.get() || {};
     /* old single-sender snapshots migrate into a one-item list */
-    senders = d.senders || (d.sender && (d.sender.name || d.sender.addr) ? [{ id:"s1", ...d.sender }] : []);
+    senders = deviceSenders(d);
     activeSenderId = d.activeSenderId || null;
     addresses = d.addresses || []; shipments = d.shipments || [];
   }
   try{ activeSenderId = localStorage.getItem(AKEY) || activeSenderId; }catch(e){}
   if(!senders.some(x => x.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
-  addresses.forEach(a => { if(!(a.id in ui)) ui[a.id] = { sel:false, copies:1, fragile:false }; });
   renderSenders(); render(); renderLog(); fillLogPicker(); renderCosts();
 }
 
@@ -318,6 +359,7 @@ function renderHome(){
   if(!senders.length) from.add(new Option("Add a sender in Address book", ""));
   from.value = activeSenderId || "";
   const choices = [...addresses, ...senders.filter(s => s.id !== activeSenderId)];
+  addresses.forEach(a => { if(!ui[a.id]) ui[a.id] = {sel:false,copies:1,fragile:false}; });
   const selected = recipients();
   $("toSummary").textContent = "To · " + (selected.length === 1 ? selected[0].label || selected[0].name : selected.length ? selected.length + " recipients" : "Choose recipients");
   $("homeTo").innerHTML = choices.map(a => `<label class="opt"><input type="checkbox" data-own="${senders.includes(a)}" value="${esc(a.id)}" ${(senders.includes(a)?sui:ui)[a.id]?.sel?"checked":""}>${esc(a.label || a.name)} · ${esc(a.country || "India")}</label>`).join("") || "Add a destination in Address book.";
@@ -393,8 +435,8 @@ $("list").addEventListener("click", async e => {
     if(!confirm("Delete this address?")) return;
     try{
       if(online) await rest("tapal_addresses?id=eq." + dl, { method:"PATCH", headers:RETURN, body:JSON.stringify({archived:true}) });
-      addresses = addresses.filter(a => a.id !== dl);
-      if(!online) await local.set(snapshot());
+      addresses = online ? addresses.filter(a => a.id !== dl)
+        : await saveDeviceRows("addresses", rows => rows.filter(a => a.id !== dl));
       render(); fillLogPicker(); say("Address deleted.");
     }catch(e){ say("Delete failed: " + e.message); }
   }
@@ -412,7 +454,7 @@ $("showAdd").onclick = () => openAddr(null);
 $("cancelAddr").onclick = closeAddrModal;
 $("closeAddr").onclick  = closeAddrModal;
 
-$("saveAddr").onclick = async () => {
+async function persistAddress(){
   const v = readForm("r");
   if(!v.name){ say("Add a recipient name first."); return; }
   const perr = postalError(v); if(perr){ say(perr); return; }
@@ -430,15 +472,13 @@ $("saveAddr").onclick = async () => {
     addresses = editingId ? addresses.map(a => a.id===editingId?row:a) : [...addresses,row];
     addresses.sort((x,y) => (x.name||"").localeCompare(y.name||""));
   }else{
-    const id = editingId || "a"+Date.now();
-    const row = {...rec, id, addr:rec.line};
-    if(!(id in ui)) ui[id] = { sel:false, copies:1 };
-    addresses = editingId ? addresses.map(a => a.id===id?row:a) : [...addresses,row];
-    await local.set(snapshot());
+    const id = editingId || deviceId();
+    try{ addresses = await saveDeviceAddress("addresses", {...rec, id, addr:rec.line}, !!editingId); }
+    catch(e){ $("rNote").textContent = "Save failed: " + e.message; return; }
   }
   closeAddrModal();
   render(); fillLogPicker(); say("Saved.");
-};
+}
 
 async function persistSender(){
   const note = m => { $("senderStatus").textContent = m; };
@@ -465,9 +505,10 @@ async function persistSender(){
       note(id ? "Sender updated." : "Sender saved.");
     }catch(e){ note("Save failed: " + e.message); return; }
   }else{
-    if(id) senders = senders.map(s => s.id === id ? { ...s, ...rec } : s);
-    else { const nid = "s" + Date.now(); senders.push({ id:nid, ...rec }); activeSenderId = nid; }
-    await local.set(snapshot());
+    const row = {...rec, id:id || deviceId()};
+    try{ senders = await saveDeviceAddress("senders", row, !!id); }
+    catch(e){ note("Save failed: " + e.message); return; }
+    if(!id) activeSenderId = row.id;
     note("Saved on this device only — not synced. " + (location.protocol === "file:"
       ? "Opening the file directly blocks Supabase; serve it over http://localhost instead."
       : "Check the connection badge at the top."));
@@ -477,7 +518,16 @@ async function persistSender(){
   closeModal("senderModal");
   renderSenders(); fillLogPicker();
 }
-$("saveSender").onclick = () => persistSender();
+function bindSaveButton(id, save){
+  const button = $(id);
+  button.onclick = async () => {
+    if(button.disabled) return;
+    button.disabled = true;
+    try{ await save(); }finally{ button.disabled = !canWrite(); }
+  };
+}
+bindSaveButton("saveAddr", persistAddress);
+bindSaveButton("saveSender", persistSender);
 
 async function deleteSender(id){
   if(senders.length < 2) return;
@@ -487,10 +537,15 @@ async function deleteSender(id){
     try{ await rest("tapal_senders?id=eq." + id, { method:"DELETE" }); }
     catch(e){ note("Delete failed: " + e.message); return; }
   }
-  senders = senders.filter(s => s.id !== id);
+  if(online) senders = senders.filter(s => s.id !== id);
+  else{
+    try{ senders = await saveDeviceRows("senders", rows => {
+      if(rows.length <= 1) throw Error("Keep at least one sender.");
+      return rows.filter(s => s.id !== id);
+    }); }catch(e){ say("Delete failed: " + e.message); return; }
+  }
   delete sui[id];
-  if(activeSenderId === id) activeSenderId = senders[0] ? senders[0].id : null;
-  if(!online) await local.set(snapshot());
+  if(!senders.some(s => s.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
   try{ if(activeSenderId) localStorage.setItem(AKEY, activeSenderId); }catch(_){}
   renderSenders(); fillLogPicker(); note("Sender deleted.");
 }
@@ -710,7 +765,13 @@ $("logBody").addEventListener("click", async e => {
         }
       }
       if(online) row.consignment_no = value;
-      else await saveDeviceShipments(rows => rows.map(s => s.id === row.id ? {...s, consignment_no:value} : s));
+      else await saveDeviceShipments(rows => {
+        const current = rows.find(s => s.id === row.id);
+        if(!current || (current.consignment_no !== row.consignment_no && current.consignment_no !== value)){
+          throw Error("Shipment changed. Reload History before editing.");
+        }
+        return rows.map(s => s.id === row.id ? {...s, consignment_no:value} : s);
+      });
       renderLog();
     }catch(err){ say("Tracking update failed: " + err.message); }
     finally{ controls.forEach(button => button.disabled = false); }
@@ -761,7 +822,7 @@ $("addLog").onclick = async () => {
       shipments = [saved, ...shipments.filter(s => s.id !== saved.id)];
       setPendingShipment(null);
     }else{
-      const row = {...rec, id:crypto.randomUUID?.() || "s" + crypto.getRandomValues(new Uint32Array(4)).join("-")};
+      const row = {...rec, id:deviceId()};
       await saveDeviceShipments(rows => [row, ...rows]);
     }
     $("lgUntracked").checked = false; $("lgCn").disabled = false; $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
