@@ -80,14 +80,17 @@ function build(){
   });
   /* One recipient, one copy — give it the whole sheet instead of a blank half. */
   const cls = main.length === 1 ? "one" : size;
-  $("scalerInner").innerHTML = buildSheets(cls,main) + (slips.length ? buildSheets("four",slips) : "");
+  let paperwork;
+  try{ paperwork = customsSheets(activeSender(),chosen[0]); }
+  catch(e){ say(e.message); $("previewMessage").textContent = e.message; return false; }
+  $("scalerInner").innerHTML = buildSheets(cls,main) + (slips.length ? buildSheets("four",slips) : "") + paperwork;
   // Measure the full-size print cells even when the Home screen hides the preview.
   document.body.classList.add("measureLabels");
-  const overflow = Array.from(document.querySelectorAll("#scalerInner .label")).some(label =>
+  const overflow = Array.from(document.querySelectorAll("#scalerInner .label, #scalerInner .customsPaper")).some(label =>
     label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1);
   document.body.classList.remove("measureLabels");
   if(overflow){
-    const message = "Text exceeds the label area. Try a larger label, shorten the text, or turn off the inside slip.";
+    const message = paperwork ? "Text exceeds the available page area. Shorten the address or item descriptions, or select a larger label." : "Text exceeds the label area. Try a larger label, shorten the text, or turn off the inside slip.";
     say(message);
     $("previewMessage").textContent = message;
     return false;
