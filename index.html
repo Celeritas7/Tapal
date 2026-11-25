@@ -91,7 +91,7 @@
       <div class="opt"><input type="checkbox" id="optInside" checked><label for="optInside">Add a small duplicate slip for <strong>inside</strong> each box</label></div>
     </div>
     </details>
-    <div class="row"><button class="btn" id="previewBtn">Preview label</button></div>
+    <div class="row"><button class="btn" id="previewBtn">Preview label</button><button class="btn ghost" id="recordPrepared" style="display:none">Record as sent</button></div>
 
   </section>
 
@@ -113,7 +113,7 @@
   <section class="card">
     <h2>Shipment history</h2>
     <p class="hint">Consignment numbers, so you're not digging through WhatsApp later.</p>
-    <details><summary>Record a sent parcel</summary><div class="grid">
+    <details id="shipmentEntry"><summary>Record a sent parcel</summary><div class="grid">
       <div><label class="f" for="lgTo">Sent to</label><select id="lgTo"><option value="">Select</option></select></div>
       <div><label class="f" for="lgService">Service</label>
         <select id="lgService">
@@ -128,7 +128,7 @@
       <div><label class="f" for="lgStatus">Status</label>
         <select id="lgStatus"><option>packed</option><option>booked</option><option>in transit</option><option>delivered</option><option>problem</option></select></div>
     </div>
-    <div class="row"><button class="btn ghost" id="addLog">Add to log</button></div></details>
+    <div class="row"><button class="btn ghost" id="addLog">Confirm shipment</button><button class="btn ghost" id="cancelShipment">Cancel</button></div></details>
     <div class="wrapx"><table class="log"><thead><tr>
       <th>Date</th><th>To</th><th>Service</th><th>Consignment</th><th>Status</th><th></th>
     </tr></thead><tbody id="logBody"></tbody></table></div>
