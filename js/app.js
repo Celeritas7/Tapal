@@ -343,6 +343,7 @@ async function loadAll(){
   try{ activeSenderId = localStorage.getItem(AKEY) || activeSenderId; }catch(e){}
   if(!senders.some(x => x.id === activeSenderId)) activeSenderId = senders[0] ? senders[0].id : null;
   renderSenders(); render(); renderLog(); fillLogPicker(); renderCosts();
+  restorePrepared();
 }
 
 /* ---------- senders (From blocks) ---------- */
@@ -564,6 +565,39 @@ let preparedLabel = null;
 let autoFilledDestination = null;
 let recordingPrepared = false;
 let pendingShipment = null;
+let batchId = null;
+function preparedKey(){
+  return "tapal-prepared:" + (online ? "account:" : "device:") + (session?.user_id || "local");
+}
+function storePrepared(newBatch = false){
+  try{
+    const key = preparedKey();
+    if(!newBatch && JSON.parse(localStorage.getItem(key))?.id !== batchId) return;
+    if(preparedParcels.length){
+      localStorage.setItem(key, JSON.stringify({id:batchId, sender:activeSenderId, parcels:preparedParcels}));
+    }else localStorage.removeItem(key);
+  }catch(e){ say("Could not save the prepared parcel on this device. Keep this tab open."); }
+}
+function restorePrepared(){
+  let draft;
+  try{ draft = JSON.parse(localStorage.getItem(preparedKey())); }catch(e){ return; }
+  if(!canWrite() || !draft?.id || !Array.isArray(draft.parcels) || !senders.some(s => s.id === draft.sender)) return;
+  const available = new Map([
+    ...addresses.map(a => [a.id,ui[a.id]]),
+    ...senders.filter(s => s.id !== draft.sender).map(s => ["sender:" + s.id,sui[s.id]])
+  ]);
+  const recorded = new Set(shipments.map(s => s.id));
+  const remaining = draft.parcels.filter(p => p?.id && available.has(p.key) && !recorded.has(p.id));
+  batchId = draft.id;
+  preparedParcels = remaining;
+  if(!remaining.length){ storePrepared(); updateRecordAction(); return; }
+  activeSenderId = draft.sender;
+  for(const state of [...Object.values(ui), ...Object.values(sui)]) state.sel = false;
+  for(const parcel of remaining) available.get(parcel.key).sel = true;
+  $("contents").value = remaining[0].contents;
+  preparedLabel = currentLabel();
+  renderHome(); fillLogPicker(); updateRecordAction();
+}
 function pendingKey(){ return "tapal-pending-shipment:" + session.user_id; }
 function setPendingShipment(attempt){
   pendingShipment = attempt;
@@ -634,6 +668,7 @@ function invalidateChangedLabel(){
   if(preparedLabel === null || preparedLabel === currentLabel()) return;
   preparedLabel = null;
   preparedParcels = [];
+  storePrepared();
   updateRecordAction();
   if(!pendingShipment && !$("addLog").disabled){
     if(recordingPrepared) closeShipmentEntry();
@@ -647,13 +682,17 @@ $("lgTo").addEventListener("change", () => { autoFilledDestination = null; });
 
 function rememberPreparedParcels(prefill = false){
   invalidateChangedLabel();
+  if(!canWrite()) return;
   if(preparedLabel === null){
+    batchId = deviceId();
     preparedLabel = currentLabel();
     preparedParcels = recipients().map(dest => ({
+      id:deviceId(),
       key: senders.includes(dest) ? "sender:" + dest.id : dest.id,
       name: dest.label || dest.name,
       contents: $("contents").value
     }));
+    storePrepared(true);
   }
   updateRecordAction();
   if(prefill && !pendingShipment && !$("shipmentEntry").open){
@@ -681,6 +720,10 @@ $("recordPrepared").onclick = () => {
 };
 function closeShipmentEntry(){
   bookingOrigin = null;
+  $("lgContents").value = "";
+  $("lgCn").value = "";
+  $("lgCn").disabled = false;
+  $("lgUntracked").checked = false;
   $("lgCost").value = "";
   autoFilledDestination = null;
   recordingPrepared = false;
@@ -741,10 +784,31 @@ function renderLog(){
     <td>${esc(s.recipient||"")}</td>
     <td>${esc(s.service||"")}${s.cost == null ? "" : `<div>Cost · ${esc(shipmentCostText(s))}</div>`}</td>
     <td class="cn">${needsTracking(s) && canWrite() ? `<details><summary>Add tracking number</summary><input aria-label="Tracking number" type="text"><button class="btn small" data-track="${esc(s.id)}">Save</button><button class="btn ghost small" data-untracked="${esc(s.id)}">Untracked service</button></details>` : esc(s.consignment_no || (needsTracking(s) ? "Missing" : "—"))}</td>
-    <td><span class="pill">${esc(s.status||"")}</span></td>
+    <td><span class="pill">${esc(s.status||"")}</span>
+      ${s.status === "packed" && canWrite() ? `<button class="btn small" data-book="${esc(s.id)}">Mark booked</button>` : ""}</td>
     <td>${canWrite() ? `<button class="btn danger small" data-dellog="${s.id}">Remove</button>` : ""}</td></tr>`).join("");
 }
 $("logBody").addEventListener("click", async e => {
+  const bookedId = e.target.dataset.book;
+  if(bookedId && canWrite()){
+    const button = e.target;
+    button.disabled = true;
+    const patch = {status:"booked", booked_on:localBookingDate()};
+    try{
+      if(online){
+        const path = "tapal_shipments?id=eq." + encodeURIComponent(bookedId);
+        const updated = await rest(path + "&status=eq.packed", {method:"PATCH",headers:RETURN,body:JSON.stringify(patch)});
+        const row = updated[0] || (await rest(path + "&select=*"))[0];
+        if(!row) throw Error("Shipment no longer exists. Reload History.");
+        shipments = shipments.map(s => s.id === bookedId ? row : s);
+      }else{
+        await saveDeviceShipments(rows => rows.map(s => s.id === bookedId && s.status === "packed" ? {...s,...patch} : s));
+      }
+      renderLog();
+    }catch(err){ say("Booking update failed: " + err.message); }
+    finally{ button.disabled = false; }
+    return;
+  }
   const trackingId = e.target.dataset.track || e.target.dataset.untracked;
   if(trackingId && canWrite()){
     const row = shipments.find(s => s.id === trackingId);
@@ -790,6 +854,7 @@ $("addLog").onclick = async () => {
   if(!canWrite() || $("addLog").disabled) return;
   const owner = session?.user_id;
   const selected = pendingShipment?.selected ?? $("lgTo").value;
+  const prepared = preparedParcels.find(p => p.key === selected && (recordingPrepared || p.id === pendingShipment?.row.id));
   const addr = addresses.find(a => a.id === selected);
   const own = senders.find(s => "sender:" + s.id === selected);
   const amount = $("lgCost");
@@ -816,18 +881,19 @@ $("addLog").onclick = async () => {
   $("shipmentFields").disabled = true;
   try{
     if(online){
-      if(!pendingShipment) setPendingShipment({selected, row:{...rec, id:crypto.randomUUID()}});
+      if(!pendingShipment) setPendingShipment({selected, row:{...rec, id:prepared?.id || crypto.randomUUID()}});
       const saved = await saveServerShipment(pendingShipment.row);
       if(session?.user_id !== owner) return;
       shipments = [saved, ...shipments.filter(s => s.id !== saved.id)];
       setPendingShipment(null);
     }else{
-      const row = {...rec, id:deviceId()};
-      await saveDeviceShipments(rows => [row, ...rows]);
+      const row = {...rec, id:prepared?.id || deviceId()};
+      await saveDeviceShipments(rows => rows.some(s => s.id === row.id) ? rows : [row, ...rows]);
     }
     $("lgUntracked").checked = false; $("lgCn").disabled = false; $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
-    if(recordingPrepared){
-      preparedParcels = preparedParcels.filter(parcel => parcel.key !== selected);
+    if(prepared){
+      preparedParcels = preparedParcels.filter(parcel => parcel.id !== prepared.id);
+      storePrepared();
       if(!preparedParcels.length) preparedLabel = null;
       updateRecordAction();
     }
