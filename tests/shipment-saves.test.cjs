@@ -30,7 +30,7 @@ function openApp({sessionStorage = storage(), localStorage = storage(), online =
   const env = vm.createContext({
     crypto:webcrypto, localStorage, sessionStorage, location:{hash:""}, console,
     document:{body:{classList:{add(){},remove(){}}}, getElementById:element, querySelector:element, querySelectorAll:()=>[], addEventListener(){}},
-    window:{addEventListener(){},scrollTo(){}},
+    window:{navigator:{locks:{request:(_, change) => change()}},addEventListener(){},scrollTo(){}},
     Option:class { constructor(text,value){ this.text = text; this.value = value; } }
   });
   const run = code => vm.runInContext(code, env);
@@ -358,4 +358,28 @@ test("preview counter follows the visible sheet and reaches the last slip on a t
   scroller.scrollTop = 108;
   scroller.scroll();
   assert.equal(app.element("pageNumber").textContent, "2 of 2");
+});
+
+test("stale tabs preserve each other's shipments and address edits", async () => {
+  const localStorage = storage();
+  const a = openApp({online:false,localStorage}), b = openApp({online:false,localStorage});
+  await a.confirm();
+  await b.run('saveDeviceAddress("addresses", {id:"second",name:"New address"}, false)');
+  await b.confirm();
+  const saved = JSON.parse(localStorage.getItem("parcel-label-data"));
+  assert.equal(new Set(saved.shipments.map(row => row.id)).size,2);
+  assert.equal(saved.addresses[0].id,"second");
+});
+
+test("a failed device address write preserves the form and retries only once", async () => {
+  const localStorage = storage(), write = localStorage.setItem;
+  const app = openApp({online:false,localStorage});
+  app.run('readForm = () => ({name:"Retry recipient",country:"India",pin:"400001"}); closeAddrModal = () => {};');
+  localStorage.setItem = () => { throw Error("Storage full"); };
+  await app.element("saveAddr").onclick();
+  assert.match(app.element("rNote").textContent,/Storage full/);
+  assert.equal(app.run('addresses.some(a => a.name === "Retry recipient")'),false);
+  localStorage.setItem = write;
+  await Promise.all([app.element("saveAddr").onclick(),app.element("saveAddr").onclick()]);
+  assert.equal(JSON.parse(localStorage.getItem("parcel-label-data")).addresses.length,1);
 });
