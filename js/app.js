@@ -48,7 +48,10 @@ function showTab(name){
   if(bar) bar.style.display = name === "labels" ? "" : "none";
 }
 $("tabs").addEventListener("click", e => {
-  const t = e.target.closest("[data-tab]"); if(t) showTab(t.getAttribute("data-tab"));
+  const t = e.target.closest("[data-tab]"); if(t){
+    if(t.dataset.tab === "history" && $("missingCount").textContent){ $("missingOnly").checked = true; renderLog(); }
+    showTab(t.getAttribute("data-tab"));
+  }
 });
 
 $("lgDate").value = new Date().toISOString().slice(0,10);
@@ -219,12 +222,21 @@ async function doSignOut(expired){
 }
 $("signOut").onclick = () => doSignOut(false);
 
+async function loadShipmentHistory(){
+  const rows = [];
+  const limit = 200;
+  for(;;){
+    const page = await rest("tapal_shipments?select=*&order=booked_on.desc.nullslast,id.asc&limit=" + limit + "&offset=" + rows.length);
+    rows.push(...page);
+    if(page.length < limit) return rows;
+  }
+}
 async function loadAll(){
   if(online){
     const [s,a,l] = await Promise.all([
       rest("tapal_senders?user_id=eq." + session.user_id + "&select=*&order=created_at"),
       rest("tapal_addresses?archived=eq.false&select=*&order=name"),
-      rest("tapal_shipments?select=*&order=booked_on.desc.nullslast&limit=50")
+      loadShipmentHistory()
     ]);
     senders = (s || []).map(x => ({ id:x.id, name:x.name, phone:x.phone, addr:x.line, city:x.city, district:x.district || "", state:x.state || "", pin:x.pin, country:x.country || "India", label:x.label || "" }));
     addresses = (a || []).map(x => ({...x, addr:x.line}));
@@ -455,7 +467,7 @@ $("recordPrepared").onclick = () => {
   recordingPrepared = true;
   fillLogPicker();
   $("lgTo").value = preparedParcels.length === 1 ? preparedParcels[0].key : "";
-  $("lgCn").value = ""; $("lgCost").value = "";
+  $("lgUntracked").checked = false; $("lgCn").disabled = false; $("lgCn").value = ""; $("lgCost").value = "";
   $("lgContents").value = preparedParcels[0].contents;
   $("lgStatus").value = "booked";
   showTab("history");
@@ -496,18 +508,51 @@ function printedDestination(){
   const dest = chosen[0];
   return senders.includes(dest) ? "sender:" + dest.id : dest.id;
 }
+const UNTRACKED = "Untracked service";
+function needsTracking(row){
+  return ["booked","in transit","delivered","problem"].includes(row.status) && !(row.consignment_no || "").trim();
+}
+$("missingOnly").onchange = renderLog;
+$("lgUntracked").onchange = () => { $("lgCn").disabled = $("lgUntracked").checked; };
 function renderLog(){
   const b = $("logBody");
+  const missing = shipments.filter(needsTracking);
+  $("missingCount").textContent = missing.length ? "· " + missing.length + " missing" : "";
+  const visible = $("missingOnly").checked ? missing : shipments;
+  if(!visible.length && $("missingOnly").checked){ b.innerHTML = '<tr><td colspan="6">No missing tracking numbers.</td></tr>'; return; }
   if(!shipments.length){ b.innerHTML = '<tr><td colspan="6" class="empty">Nothing logged yet.</td></tr>'; return; }
-  b.innerHTML = shipments.map(s => `<tr>
+  b.innerHTML = visible.map(s => `<tr>
     <td>${esc(s.booked_on||"")}</td>
     <td>${esc(s.recipient||"")}</td>
     <td>${esc(s.service||"")}</td>
-    <td class="cn">${esc(s.consignment_no||"—")}</td>
+    <td class="cn">${needsTracking(s) && canWrite() ? `<details><summary>Add tracking number</summary><input aria-label="Tracking number" type="text"><button class="btn small" data-track="${esc(s.id)}">Save</button><button class="btn ghost small" data-untracked="${esc(s.id)}">Untracked service</button></details>` : esc(s.consignment_no || (needsTracking(s) ? "Missing" : "—"))}</td>
     <td><span class="pill">${esc(s.status||"")}</span></td>
     <td>${canWrite() ? `<button class="btn danger small" data-dellog="${s.id}">Remove</button>` : ""}</td></tr>`).join("");
 }
 $("logBody").addEventListener("click", async e => {
+  const trackingId = e.target.dataset.track || e.target.dataset.untracked;
+  if(trackingId && canWrite()){
+    const row = shipments.find(s => s.id === trackingId);
+    if(!row || !needsTracking(row)) return;
+    const field = e.target.closest("details").querySelector("input");
+    const value = e.target.dataset.untracked ? UNTRACKED : field.value.trim();
+    if(!value){ field.focus(); return; }
+    const controls = e.target.closest("details").querySelectorAll("button");
+    controls.forEach(button => button.disabled = true);
+    try{
+      if(online){
+        const previous = row.consignment_no == null ? "is.null" : "eq." + encodeURIComponent(row.consignment_no);
+        const saved = await rest("tapal_shipments?id=eq." + encodeURIComponent(row.id) + "&consignment_no=" + previous,
+          {method:"PATCH", headers:RETURN, body:JSON.stringify({consignment_no:value})});
+        if(!saved.length){ say("Shipment changed. Reload History to see its current tracking number."); return; }
+      }
+      row.consignment_no = value;
+      if(!online) await local.set(snapshot());
+      renderLog();
+    }catch(err){ say("Tracking update failed: " + err.message); }
+    finally{ controls.forEach(button => button.disabled = false); }
+    return;
+  }
   const id = e.target.getAttribute("data-dellog"); if(!id) return;
   if(online) { try{ await rest("tapal_shipments?id=eq." + id, { method:"DELETE" }); }catch(e){ say("Delete failed: " + e.message); return; } }
   shipments = shipments.filter(s => s.id !== id);
@@ -524,7 +569,7 @@ $("addLog").onclick = async () => {
     recipient: own ? senderDestinationName(own) : (addr ? addr.name : ""),
     contents: $("lgContents").value.trim(),
     service: $("lgService").value,
-    consignment_no: $("lgCn").value.trim(),
+    consignment_no: $("lgUntracked").checked ? UNTRACKED : $("lgCn").value.trim(),
     booked_on: $("lgDate").value || null,
     cost: $("lgCost").value ? Number($("lgCost").value) : null,
     status: $("lgStatus").value
@@ -539,7 +584,7 @@ $("addLog").onclick = async () => {
       shipments = [{...rec, id:"s"+Date.now()}, ...shipments];
       await local.set(snapshot());
     }
-    $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
+    $("lgUntracked").checked = false; $("lgCn").disabled = false; $("lgCn").value = ""; $("lgContents").value = ""; $("lgCost").value = "";
     if(recordingPrepared){
       preparedParcels = preparedParcels.filter(parcel => parcel.key !== selected);
       if(!preparedParcels.length) $("recordPrepared").style.display = "none";

@@ -23,7 +23,7 @@
     <nav class="tabs" id="tabs" style="display:none" aria-label="Sections">
       <button class="tab on" data-tab="labels" aria-selected="true">Home</button>
       <button class="tab" data-tab="book" aria-selected="false">Address book</button>
-      <button class="tab" data-tab="history" aria-selected="false">History</button>
+      <button class="tab" data-tab="history" aria-selected="false">History <span id="missingCount"></span></button>
       <button class="tab" data-tab="settings" aria-selected="false">Settings</button>
     </nav>
   </header>
@@ -112,6 +112,7 @@
   <div id="tabHistory" style="display:none">
   <section class="card">
     <h2>Shipment history</h2>
+    <label class="opt"><input type="checkbox" id="missingOnly"> Missing tracking numbers only</label>
     <p class="hint">Consignment numbers, so you're not digging through WhatsApp later.</p>
     <details id="shipmentEntry"><summary>Record a sent parcel</summary><div class="grid">
       <div><label class="f" for="lgTo">Sent to</label><select id="lgTo"><option value="">Select</option></select></div>
@@ -122,7 +123,7 @@
           <option>Xpressbees</option><option>Bus parcel</option><option>Hand carried</option>
         </select></div>
       <div class="full"><label class="f" for="lgContents">Contents</label><input type="text" id="lgContents"></div>
-      <div><label class="f" for="lgCn">Consignment no.</label><input type="text" id="lgCn"></div>
+      <div><label class="f" for="lgCn">Consignment no.</label><input type="text" id="lgCn"><label class="opt"><input type="checkbox" id="lgUntracked"> Untracked service</label></div>
       <div><label class="f" for="lgDate">Booked on</label><input type="date" id="lgDate"></div>
       <div><label class="f" for="lgCost">Cost (₹)</label><input type="number" id="lgCost" min="0" step="1"></div>
       <div><label class="f" for="lgStatus">Status</label>
