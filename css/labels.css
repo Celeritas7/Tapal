@@ -106,3 +106,11 @@
     .sheet{margin:0;box-shadow:none;page-break-after:always;break-after:page}
     .sheet:last-child{page-break-after:auto;break-after:auto}
   }
+
+  .customsPaper{min-height:0;min-width:0;padding:12mm;overflow:hidden;overflow-wrap:anywhere;font-size:11pt}
+  .customsPaper h2{font-size:20pt}
+  .customsParties{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin:8mm 0}
+  .customsParties p{white-space:pre-line}
+  .customsPaper table{width:100%;border-collapse:collapse}
+  .customsPaper th,.customsPaper td{text-align:left;border:1px solid #777;padding:2mm}
+  .customsPaper td:first-child{width:45%}
