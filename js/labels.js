@@ -106,6 +106,7 @@ window.addEventListener("resize", () => { if(document.body.classList.contains("p
 let editorScroll = 0;
 $("previewBtn").onclick = () => {
   if(!build()) return;
+  rememberPreparedParcels();
   editorScroll = window.scrollY;
   document.body.classList.add("preview");
   $("hideBtn").style.display = "inline-block";
@@ -120,7 +121,7 @@ $("hideBtn").onclick = () => {
   $("previewBtn").focus({preventScroll:true});
   window.scrollTo(0, editorScroll);
 };
-$("printBtn").onclick = () => { if(build()){ $("lgTo").value = printedDestination(); setTimeout(() => window.print(), 60); } };
+$("printBtn").onclick = () => { if(build()){ rememberPreparedParcels(); $("lgTo").value = printedDestination(); setTimeout(() => window.print(), 60); } };
 
 /* ---------- direct PDF download ---------- */
 /* Renders each A4 sheet to canvas and packs them into one PDF — no print dialog.
@@ -150,6 +151,7 @@ $("pdfBtn").onclick = async () => {
       pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
     }
     pdf.save("parcel-labels-" + new Date().toISOString().slice(0,10) + ".pdf");
+    rememberPreparedParcels();
     $("lgTo").value = destination;
     say("PDF saved to your downloads.");
   }catch(e){
