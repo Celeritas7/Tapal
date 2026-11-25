@@ -47,14 +47,14 @@ function labelHTML(a, inside){
     : (prState(a.id).fragile ? "FRAGILE — HANDLE WITH CARE" : "");
   return `<div class="label"><div class="inner">
     ${bandHTML(band, inside)}
-    <div class="toLbl">To</div>
+    <div class="destination"><div class="toLbl">To</div>
     <div class="toName">${esc(a.name)}</div>
     <div class="toAddr">${esc(addr)}</div>
     ${a.phone ? `<div class="phone">Ph: ${esc(a.phone)}</div>` : ""}
     ${c === "India"
       ? `<div class="pinRow"><span class="pl">PIN</span>${pinBoxes(a.pin)}</div>`
       : (a.pin ? `<div class="pinRow"><span class="pl">${c === "Japan" ? "〒" : "POST CODE"}</span><span class="toName postBig">${esc(a.pin)}</span></div>` : "")}
-    <div class="foot"><div class="from"><div class="fromLbl">From</div>
+    </div><div class="foot"><div class="from"><div class="fromLbl">From</div>
       <div class="fromTxt">${esc(fromBlock(a))}</div></div>
       ${contents ? `<div class="contents">${esc(contents)}</div>` : ""}
     </div></div></div>`;
@@ -81,6 +81,17 @@ function build(){
   /* One recipient, one copy — give it the whole sheet instead of a blank half. */
   const cls = main.length === 1 ? "one" : size;
   $("scalerInner").innerHTML = buildSheets(cls,main) + (slips.length ? buildSheets("four",slips) : "");
+  // Measure the full-size print cells even when the Home screen hides the preview.
+  document.body.classList.add("measureLabels");
+  const overflow = Array.from(document.querySelectorAll("#scalerInner .label")).some(label =>
+    label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1);
+  document.body.classList.remove("measureLabels");
+  if(overflow){
+    const message = "Text exceeds the label area. Try a larger label, shorten the text, or turn off the inside slip.";
+    say(message);
+    $("previewMessage").textContent = message;
+    return false;
+  }
   fit();
   say(`${main.length} label${main.length>1?"s":""} ready${slips.length?`, plus ${slips.length} inside slip${slips.length>1?"s":""}`:""}.`);
   return true;
