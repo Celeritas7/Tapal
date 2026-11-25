@@ -486,3 +486,11 @@ test("customs worksheets follow the sender's postal service and clear when the p
   assert.equal(app.element("includeCustoms").checked,false);
   assert.equal(app.run("customsSheets({}, {})"),"");
 });
+
+test("History offers a barcode only for an encodable saved tracking number", async () => {
+  const app = await labelApp();
+  app.run('shipments = ["001a/JP", "", UNTRACKED, "日本", "x".repeat(49)].map((consignment_no,i) => ({id:String(i),status:"booked",consignment_no})); renderLog()');
+  assert.deepEqual(app.element("logBody").markup.match(/data-barcode="[^"]*"/g),['data-barcode="0"']);
+  // Start B (104), 'A' (33), checksum (34), stop (106).
+  assert.equal(app.run('consignmentBars("A")'),"211214"+"111323"+"131123"+"2331112");
+});
