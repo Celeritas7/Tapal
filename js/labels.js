@@ -127,10 +127,60 @@ function updatePageNumber(){
 $("sheets").addEventListener("scroll", updatePageNumber);
 window.addEventListener("resize", () => { if(document.body.classList.contains("preview")) fit(); });
 
+// Code 128 symbol widths, in alternating bar and space modules (values 0–106).
+const barcodePatterns = [
+  "212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213",
+  "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132",
+  "221231", "213212", "223112", "312131", "311222", "321122", "321221", "312212", "322112", "322211",
+  "212123", "212321", "232121", "111323", "131123", "131321", "112313", "132113", "132311", "211313",
+  "231113", "231311", "112133", "112331", "132131", "113123", "113321", "133121", "313121", "211331",
+  "231131", "213113", "213311", "213131", "311123", "311321", "331121", "312113", "312311", "332111",
+  "314111", "221411", "431111", "111224", "111422", "121124", "121421", "141122", "141221", "112214",
+  "112412", "122114", "122411", "142112", "142211", "241211", "221114", "413111", "241112", "134111",
+  "111242", "121142", "121241", "114212", "124112", "124211", "411212", "421112", "421211", "212141",
+  "214121", "412121", "111143", "111341", "131141", "114113", "114311", "411113", "411311", "113141",
+  "114131", "311141", "411131", "211412", "211214", "211232", "2331112",
+];
+function consignmentBars(value){
+  const codes = Array.from(value, letter => letter.charCodeAt(0) - 32);
+  const checksum = codes.reduce((sum, code, i) => sum + code * (i + 1),104) % 103;
+  return [104,...codes,checksum,106].map(code => barcodePatterns[code]).join("");
+}
+let barcodeTrigger = null;
+function openBarcode(row, trigger){
+  const value = row.consignment_no;
+  if(!canPrintBarcode(value)) return;
+  const widths = consignmentBars(value);
+  const modules = 20 + Array.from(widths, Number).reduce((a,b) => a+b,0);
+  $("scalerInner").innerHTML = `<section class="sheet"><div class="trackingSticker"><strong>Consignment number</strong>
+    <canvas aria-hidden="true"></canvas><div class="trackingValue">${esc(value)}</div>
+    <div>${esc(row.recipient)} · ${esc(row.service || "")}</div></div></section>`;
+  const canvas = $("scalerInner").querySelector("canvas");
+  canvas.width = modules * 4;
+  canvas.height = 240;
+  canvas.style.width = Math.min(185, modules * 0.42) + "mm";
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "#000";
+  let left = 40; // Ten narrow modules of quiet space on each side.
+  for(let i=0;i<widths.length;i++){
+    const width = Number(widths[i]) * 4;
+    if(i % 2 === 0) ctx.fillRect(left,0,width,canvas.height);
+    left += width;
+  }
+  barcodeTrigger = trigger;
+  document.querySelector(".bar").style.display = "";
+  enterPreview();
+}
+
 let editorScroll = 0;
 $("previewBtn").onclick = () => {
   if(!build()) return;
   rememberPreparedParcels();
+  enterPreview();
+};
+function enterPreview(){
   editorScroll = window.scrollY;
   document.body.classList.add("preview");
   $("hideBtn").style.display = "inline-block";
@@ -138,14 +188,19 @@ $("previewBtn").onclick = () => {
   $("previewMessage").textContent = "";
   fit();
   $("hideBtn").focus({preventScroll:true});
-};
+}
 $("hideBtn").onclick = () => {
   document.body.classList.remove("preview");
   $("hideBtn").style.display = "none";
-  $("previewBtn").focus({preventScroll:true});
+  if(barcodeTrigger){
+    document.querySelector(".bar").style.display = "none";
+    barcodeTrigger.focus({preventScroll:true});
+    barcodeTrigger = null;
+    $("scalerInner").replaceChildren();
+  }else $("previewBtn").focus({preventScroll:true});
   window.scrollTo(0, editorScroll);
 };
-$("printBtn").onclick = () => { if(build()){ rememberPreparedParcels(true); setTimeout(() => window.print(), 60); } };
+$("printBtn").onclick = () => { if(barcodeTrigger || build()){ if(!barcodeTrigger) rememberPreparedParcels(true); setTimeout(() => window.print(), 60); } };
 
 /* ---------- direct PDF download ---------- */
 /* Renders each A4 sheet to canvas and packs them into one PDF — no print dialog.
@@ -154,7 +209,7 @@ const loadScript = src => new Promise((ok, bad) => {
   const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s);
 });
 $("pdfBtn").onclick = async () => {
-  if(!build()) return;
+  if(!barcodeTrigger && !build()) return;
   const exportedLabel = currentLabel();
   const wasPreview = document.body.classList.contains("preview");
   const homeScroll = window.scrollY;
@@ -181,8 +236,8 @@ $("pdfBtn").onclick = async () => {
       if(i) pdf.addPage();
       pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
     }
-    pdf.save("parcel-labels-" + new Date().toISOString().slice(0,10) + ".pdf");
-    if(exportedLabel === currentLabel()) rememberPreparedParcels(true);
+    pdf.save((barcodeTrigger ? "consignment-barcode-" : "parcel-labels-") + new Date().toISOString().slice(0,10) + ".pdf");
+    if(!barcodeTrigger && exportedLabel === currentLabel()) rememberPreparedParcels(true);
     say("PDF saved to your downloads.");
   }catch(e){
     console.error(e);
