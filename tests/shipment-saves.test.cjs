@@ -545,3 +545,47 @@ test("estimate selection opens the chosen recipient's editable INR shipment", as
   assert.equal(app.run("shipments[0].cost"),1299);
   assert.equal(app.run("shipments[0].service"),"Speed Post EMS");
 });
+
+test("History shows carrier results and recovers from unavailable tracking without changing the shipment", async t => {
+  const {handler} = require("../netlify/functions/parcel-status.js");
+  const app = openApp();
+  app.run('Object.assign(session,{access_token:"fictional-session",expires_at:Date.now()/1000+3600}); shipments=[{id:"p",status:"booked",consignment_no:"TEST123JP"}]');
+  const before = app.run("JSON.stringify(shipments)");
+  const priorKey = process.env.EASYPOST_API_KEY;
+  delete process.env.EASYPOST_API_KEY;
+  t.after(() => {
+    if(priorKey === undefined) delete process.env.EASYPOST_API_KEY;
+    else process.env.EASYPOST_API_KEY = priorKey;
+  });
+  let available = false, calls = 0;
+  t.mock.method(global,"fetch",async (url,options) => {
+    if(url.endsWith("/rpc/tapal_my_role")){
+      assert.equal(options.headers.authorization,"Bearer fictional-session");
+      return Response.json("operator");
+    }
+    assert.equal(url,"https://api.easypost.com/v2/trackers");
+    assert.equal(JSON.parse(options.body).tracker.tracking_code,"TEST123JP");
+    calls++;
+    return available ? Response.json({tracking_code:"TEST123JP",carrier:"Example Post",status:"in_transit"}) : new Response(null,{status:503});
+  });
+  app.env.fetch = async (url,options) => {
+    assert.equal(url,"/.netlify/functions/parcel-status");
+    const result = await handler({httpMethod:options.method,body:options.body,headers:{authorization:options.headers.Authorization}});
+    return new Response(result.body,{status:result.statusCode,headers:result.headers});
+  };
+  app.element("trackingCode").value = " TEST123JP ";
+  async function submit(){
+    await app.element("trackingLookup").onsubmit({preventDefault(){}});
+    return app.element("trackingResult").textContent;
+  }
+  assert.equal(await submit(),"Live tracking has not been configured.");
+  assert.equal(calls,0);
+  process.env.EASYPOST_API_KEY = "fixture-key";
+  assert.match(await submit(),/provider unavailable/i);
+  available = true;
+  assert.equal(await submit(),"TEST123JP · Example Post · in transit");
+  app.run("online=false");
+  assert.match(await submit(),/Sign in online/);
+  assert.equal(calls,2);
+  assert.equal(app.run("JSON.stringify(shipments)"),before);
+});
