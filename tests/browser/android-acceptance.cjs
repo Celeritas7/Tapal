@@ -1,4 +1,5 @@
-// Run with Playwright available and CHROMIUM_PATH pointing to Chrome or Chromium.
+// Requires Playwright, Chromium, Poppler, and Python 3 with Pillow and zxing-cpp.
+// Set CHROMIUM_PATH to use an installed browser.
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
@@ -59,6 +60,20 @@ const root = path.resolve(__dirname, "../..");
     const barcode = path.join(dir,"barcode.pdf");
     await page.pdf({path:barcode,preferCSSPageSize:true,printBackground:true});
     assert.match(execFileSync("pdftotext",[barcode,"-"],{encoding:"utf8"}),/TEST12345JP/);
+    for(const dpi of [150,300]){
+      const imageBase = path.join(dir,"barcode-" + dpi);
+      execFileSync("pdftoppm",["-f","1","-l","1","-singlefile","-r",String(dpi),"-png",barcode,imageBase]);
+      const decoded = execFileSync(process.env.PYTHON || "python3",[
+        "-c", [
+          "import json, sys, zxingcpp",
+          "from PIL import Image",
+          "with Image.open(sys.argv[1]) as image:",
+          "    codes = zxingcpp.read_barcodes(image, formats=zxingcpp.BarcodeFormat.Code128)",
+          "print(json.dumps([code.text for code in codes if code.valid]))"
+        ].join("\n"), imageBase + ".png"
+      ],{encoding:"utf8"});
+      assert.deepEqual(JSON.parse(decoded),["TEST12345JP"],"Code 128 scan at " + dpi + " dpi");
+    }
     console.log("PASS: mobile customs worksheet, bilingual preview, print PDF, estimate correction, device reload and barcode label.");
   } finally {
     await browser.close();
